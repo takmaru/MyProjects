@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Application">
+      <UniqueIdentifier>{6e7ae072-02cb-4411-b827-57f8fbff3480}</UniqueIdentifier>
+      <Extensions>.h;.cpp</Extensions>
+    </Filter>
+    <Filter Include="Exception">
+      <UniqueIdentifier>{b47a30a7-409f-4005-a082-b065bfa1d3dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="File">
+      <UniqueIdentifier>{deae1ea3-cd04-4055-a61d-9fe5a480336f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Path">
+      <UniqueIdentifier>{c45aaab6-c5db-4183-a0be-5d23cf6c3073}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="stdafx">
+      <UniqueIdentifier>{033d3146-4309-4b8b-9f32-f47aa00c8a97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tstring">
+      <UniqueIdentifier>{15d2bc5e-139e-4285-841c-f4b8c87293aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Singleton">
+      <UniqueIdentifier>{84d75baf-9f83-4e2f-b8a5-336632e6081b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sync">
+      <UniqueIdentifier>{fee8e53b-e800-4e4d-bd93-a3f416d84326}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graph">
+      <UniqueIdentifier>{11bce336-6026-4c1b-9a54-79e74b695550}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="String">
+      <UniqueIdentifier>{d05c7705-fb4f-4edb-b5a4-c25987b8d0f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Crypto">
+      <UniqueIdentifier>{5a1602dd-1af5-4f9c-9b61-4cce68855bc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data">
+      <UniqueIdentifier>{3f077e08-b31d-4fb1-b5ce-e6d6068a5ca7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="File\FileEnumrator.cpp">
+      <Filter>File</Filter>
+    </ClCompile>
+    <ClCompile Include="File\FileManager.cpp">
+      <Filter>File</Filter>
+    </ClCompile>
+    <ClCompile Include="Exception\MyException.cpp">
+      <Filter>Exception</Filter>
+    </ClCompile>
+    <ClCompile Include="Application\ApplicationInfo.cpp">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="Path\Path.cpp">
+      <Filter>Path</Filter>
+    </ClCompile>
+    <ClCompile Include="Path\PathControl.cpp">
+      <Filter>Path</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>stdafx</Filter>
+    </ClCompile>
+    <ClCompile Include="Application\ParamParser.cpp">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="File\FileUtil.cpp">
+      <Filter>File</Filter>
+    </ClCompile>
+    <ClCompile Include="String\StringUtil.cpp">
+      <Filter>String</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\CryptoKey.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Data\DataUtil.cpp">
+      <Filter>Data</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="File\FileEnumrator.h">
+      <Filter>File</Filter>
+    </ClInclude>
+    <ClInclude Include="File\FileManager.h">
+      <Filter>File</Filter>
+    </ClInclude>
+    <ClInclude Include="File\TextFile_LineReader.h">
+      <Filter>File</Filter>
+    </ClInclude>
+    <ClInclude Include="Exception\MyException.h">
+      <Filter>Exception</Filter>
+    </ClInclude>
+    <ClInclude Include="Application\ApplicationInfo.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Path\Path.h">
+      <Filter>Path</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>stdafx</Filter>
+    </ClInclude>
+    <ClInclude Include="tstring\tstring.h">
+      <Filter>tstring</Filter>
+    </ClInclude>
+    <ClInclude Include="Singleton\Singleton.h">
+      <Filter>Singleton</Filter>
+    </ClInclude>
+    <ClInclude Include="Sync\CriticalSection.h">
+      <Filter>Sync</Filter>
+    </ClInclude>
+    <ClInclude Include="Application\ParamParser.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\adjacent_list.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\adjacent_matrix.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="File\FileUtil.h">
+      <Filter>File</Filter>
+    </ClInclude>
+    <ClInclude Include="String\StringUtil.h">
+      <Filter>String</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\CryptoProvider.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\CryptoKey.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Data\BinaryData.h">
+      <Filter>Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Data\DataUtil.h">
+      <Filter>Data</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Graph\graph.h">
+      <Filter>Graph</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="MyLib設定.txt" />
+  </ItemGroup>
+</Project>

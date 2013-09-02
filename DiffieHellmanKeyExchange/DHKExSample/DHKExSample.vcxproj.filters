@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="stdafx">
+      <UniqueIdentifier>{ee38ef1b-4fb1-427c-b71a-e8eb0d5b1202}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>stdafx</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>stdafx</Filter>
+    </ClInclude>
+    <ClInclude Include="DHKeyServer.h" />
+    <ClInclude Include="DHKeyClient.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DHKExSample.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <Filter>stdafx</Filter>
+    </ClCompile>
+    <ClCompile Include="DHKeyServer.cpp" />
+    <ClCompile Include="DHKeyClient.cpp" />
+  </ItemGroup>
+</Project>

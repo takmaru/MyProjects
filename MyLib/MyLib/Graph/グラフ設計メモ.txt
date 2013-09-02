@@ -1,0 +1,14 @@
+グラフ
+　有向グラフ　　　　　：　directed_graph 　　　　：　template<class T, class Container = adjacent_list<T> >class directed_graph{};
+　無向グラフ　　　　　：　graph　　　　　　　　　：　template<class T, class Container = adjacent_list<T> >class graph : public graph<T, Container>{};
+　重み付き有向グラフ　：　directed_weited_graph　：　template<class T, class Container = adjacent_list<T>, class Weited = int >class weited_directe_graph{};
+　重み付き無向グラフ　：　weited_graph 　　　　　：　template<class T, class Container = adjacent_list<T>, class Weited = int >class weited_graph : public weited_directe_graph<T, Container, Weited>{};
+
+　隣接リスト
+　隣接行列
+　重み付き隣接リスト
+　重み付き隣接行列
+
+グラフ：方向（有／無）、重み（有／無）、実装（リスト or 行列）
+
+Graph

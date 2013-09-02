@@ -1,0 +1,4 @@
+MyLib設定
+追加のインクルードディレクトリ：$(SolutionDir)..\MyLib
+追加のライブラリディレクトリ：$(SolutionDir)$(Configuration)
+追加の依存ファイル：MyLib.lib

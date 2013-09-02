@@ -1,0 +1,41 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.ipch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Solution files
+*.suo
+*.sdf
+*.opensdf
+*.vcxproj.user
+
+# Compiled Files
+*/Debug/*
+*/Release/*
+*/DebugStatic/*
+*/ReleaseStatic/*
+*/DebugMulti/*
+*/ReleaseMulti/*
+*/DebugStaticMulti/*
+*/ReleaseStaticMulti/*
+Debug/*
+Release/*
+DebugStatic/*
+ReleaseStatic/*
+DebugMulti/*
+ReleaseMulti/*
+DebugStaticMulti/*
+ReleaseStaticMulti/*
+
+# Test Results
+TestResults/*
