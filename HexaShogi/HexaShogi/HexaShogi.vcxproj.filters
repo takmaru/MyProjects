@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="stdafx">
+      <UniqueIdentifier>{dfd4de01-43ac-4e48-903e-eae076fdbb80}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>stdafx</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>stdafx</Filter>
+    </ClInclude>
+    <ClInclude Include="Hexagon.h" />
+    <ClInclude Include="HexaField.h" />
+    <ClInclude Include="Piece.h" />
+    <ClInclude Include="HexaShogiTypes.h" />
+    <ClInclude Include="CompareHexagon.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>stdafx</Filter>
+    </ClCompile>
+    <ClCompile Include="HexaShogi.cpp" />
+    <ClCompile Include="Hexagon.cpp" />
+    <ClCompile Include="HexaField.cpp" />
+    <ClCompile Include="Piece.cpp" />
+    <ClCompile Include="CompareHexagon.cpp" />
+  </ItemGroup>
+</Project>
