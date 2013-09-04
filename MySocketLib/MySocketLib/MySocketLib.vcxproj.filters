@@ -19,6 +19,7 @@
       <Filter>UDP</Filter>
     </ClInclude>
     <ClInclude Include="MySockException.h" />
+    <ClInclude Include="MySockTypedef.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -12,3 +12,11 @@
 
 
 // TODO: プログラムに必要な追加ヘッダーをここで参照してください。
+#include <Windows.h>
+#include <WinSock2.h>
+#include <winsock.h>
+#include <WS2tcpip.h>
+
+#include <list>
+
+#include <MyLib/tstring/tstring.h>
