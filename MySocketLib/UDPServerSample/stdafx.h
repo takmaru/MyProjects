@@ -17,3 +17,8 @@
 #include <atlstr.h>
 
 // TODO: プログラムに必要な追加ヘッダーをここで参照してください。
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#include <iostream>

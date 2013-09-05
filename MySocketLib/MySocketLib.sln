@@ -6,6 +6,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MyLib", "..\MyLib\MyLib\MyLib.vcxproj", "{C8CE744C-3A9C-421E-BA9A-80699B9823BA}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UDPServerSample", "UDPServerSample\UDPServerSample.vcxproj", "{EA1DF391-E943-4815-9C89-7827BE766849}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C8CE744C-3A9C-421E-BA9A-80699B9823BA} = {C8CE744C-3A9C-421E-BA9A-80699B9823BA}
+		{66F3ECDF-3932-436D-800C-E31842EADBBA} = {66F3ECDF-3932-436D-800C-E31842EADBBA}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

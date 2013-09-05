@@ -17,6 +17,9 @@ public:
 public:
 	void start(unsigned short port);
 	void start(const char* service);
+	UDP_STARTERRORS start_errors() const {
+		return m_starterrors;
+	}
 	void stop();
 
 	MyLib::Data::BinaryData recv(unsigned int timeout = 0);
@@ -26,6 +29,7 @@ public:
 private:
 	SOCKET_LIST m_sockets;
 	timeval m_recvTimeout;
+	UDP_STARTERRORS m_starterrors;
 };
 
 }

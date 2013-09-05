@@ -3,13 +3,14 @@
 
 #include <WS2tcpip.h>
 
+#include <MyLib/tstring/tstring.h>
 #include "../MySockException.h"
 
 namespace {
 	const unsigned int DEFAULT_RECV_TIMEOUT = 100;
 }
 
-MySock::CUDPServer::CUDPServer(unsigned int recvTimeout/*= 0*/) : m_sockets(), m_recvTimeout()  {
+MySock::CUDPServer::CUDPServer(unsigned int recvTimeout/*= 0*/) : m_sockets(), m_recvTimeout(), m_starterrors() {
 	this->setRecvTimeout(recvTimeout);
 }
 MySock::CUDPServer::~CUDPServer() {
@@ -22,8 +23,12 @@ void MySock::CUDPServer::start(unsigned short port) {
 }
 void MySock::CUDPServer::start(const char* service) {
 
+	if(m_sockets.size() > 0) {
+		RAISE_MYSOCKEXCEPTION("start is starting");
+	}
+
 	// アドレス情報取得
-	MyLib::Data::BinaryData service_work(service, service + strlen(service));
+	MyLib::Data::BinaryData service_work(service, service + strlen(service) + 1);
 	ADDRINFOA addrHints = {0};
 	addrHints.ai_family = AF_UNSPEC;
 	addrHints.ai_socktype = SOCK_DGRAM;
@@ -36,23 +41,39 @@ void MySock::CUDPServer::start(const char* service) {
 	}
 
 	// アドレス情報は複数の可能性があるので、ループしてソケット生成＆バインドを実施する
+	m_starterrors.clear();
+	SOCKET_LIST sockets;
 	for(PADDRINFOA p = addrResult; p != NULL; p = p->ai_next) {
 		// ソケット作成
 		SOCKET sock = ::socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 		if(sock == INVALID_SOCKET) {
-			RAISE_MYSOCKEXCEPTION("start create socket err=%d", ::WSAGetLastError());
+			m_starterrors.push_back(udp_start_error(*p, ::WSAGetLastError(), 0));
+			continue;
 		}
 		// バインド
 		if(::bind(sock, p->ai_addr, p->ai_addrlen) != 0) {
-			RAISE_MYSOCKEXCEPTION("start bind err=%d", ::WSAGetLastError());
+			::closesocket(sock);
+			m_starterrors.push_back(udp_start_error(*p, 0, ::WSAGetLastError()));
+			continue;
 		}
 		// ソケットリストに追加
-		m_sockets.push_back(sock);
+		sockets.push_back(sock);
 	}
 	::freeaddrinfo(addrResult);
+	if(sockets.size() == 0) {
+		RAISE_MYSOCKEXCEPTION("start socket create or bind err");
+	}
+
+	m_sockets.swap(sockets);
 }
 
 void MySock::CUDPServer::stop() {
+	for(SOCKET_LIST::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
+		if(::closesocket(*it) != 0) {
+			RAISE_MYSOCKEXCEPTION("stop closesocket err=%d", ::WSAGetLastError());
+		}
+	}
+	m_sockets.clear();
 }
 
 MyLib::Data::BinaryData MySock::CUDPServer::recv(unsigned int timeout/*= 0*/) {
