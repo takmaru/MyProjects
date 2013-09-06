@@ -8,10 +8,17 @@
 
 namespace {
 	const unsigned int DEFAULT_RECV_TIMEOUT = 100;
+	const unsigned int DEFAULT_RECV_BUFFSIZE = 4 * 1024;
+	const unsigned int MIN_RECV_BUFFSIZE = 256;
+	const unsigned int MAX_RECV_BUFFSIZE = 4 * 1024 * 1024;
 }
 
-MySock::CUDPServer::CUDPServer(unsigned int recvTimeout/*= 0*/) : m_sockets(), m_recvTimeout(), m_starterrors() {
+MySock::CUDPServer::CUDPServer(unsigned int recvTimeout/*= 0*/, int recvBuffSize/*= 0*/):
+	m_sockets(), m_recvTimeout(),
+	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(DEFAULT_RECV_BUFFSIZE, 0),
+	m_starterrors() {
 	this->setRecvTimeout(recvTimeout);
+	this->setRecvBuffSize(recvBuffSize);
 }
 MySock::CUDPServer::~CUDPServer() {
 }
@@ -77,6 +84,43 @@ void MySock::CUDPServer::stop() {
 }
 
 MyLib::Data::BinaryData MySock::CUDPServer::recv(unsigned int timeout/*= 0*/) {
+	// fd_set を構築
+	fd_set reads = {0};
+	fd_set excepts = {0};
+	FD_ZERO(&reads);
+	FD_ZERO(&excepts);
+	for(SOCKET_LIST::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
+		FD_SET(*it, &reads);
+		FD_SET(*it, &excepts);
+	}
+	// タイムアウト値
+	timeval selectTimeout = m_recvTimeout;
+	if(timeout != 0) {
+		selectTimeout.tv_sec = timeout / 1000;
+		selectTimeout.tv_usec = timeout - (m_recvTimeout.tv_sec * 1000);
+	}
+	// select
+	int ret = ::select(0, &reads, NULL, &excepts, &selectTimeout);
+	if(ret == SOCKET_ERROR) {
+		RAISE_MYSOCKEXCEPTION("recv select err=%d", ::WSAGetLastError());
+	}
+
+	if(ret > 0) {
+		// on event
+		for(SOCKET_LIST::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
+			SOCKET sock = *it;
+			if(FD_ISSET(sock, &excepts)) {
+				// error
+			} else if(FD_ISSET(sock, &reads)) {
+				// read
+				MySockAddr mySockAddr = {0};
+				SOCKADDR* sockaddrPtr = reinterpret_cast<SOCKADDR*>(&mySockAddr.v4);
+				int sockaddrLength = sizeof(mySockAddr.v4);
+				::recvfrom(sock, &m_recvBuffer[0], m_recvBuffer.size(), 0, sockaddrPtr, &sockaddrLength);
+			}
+		}
+	}
+
 	return MyLib::Data::BinaryData();
 }
 
@@ -86,4 +130,14 @@ void MySock::CUDPServer::setRecvTimeout(unsigned int timeout) {
 	}
 	m_recvTimeout.tv_sec = timeout / 1000;
 	m_recvTimeout.tv_usec = timeout - (m_recvTimeout.tv_sec * 1000);
+}
+
+void MySock::CUDPServer::setRecvBuffSize(int size) {
+	if(	(size < MIN_RECV_BUFFSIZE) ||
+		(size > MAX_RECV_BUFFSIZE) ||
+		(size == m_recvBufferSize)	) {
+		return;
+	}
+	m_recvBufferSize = size;
+	m_recvBuffer.resize(m_recvBufferSize, 0);
 }

@@ -2,6 +2,7 @@
 
 #include <list>
 #include <winsock.h>
+#include <ws2def.h>
 
 namespace MySock {
 
@@ -18,5 +19,10 @@ public:
 	int bind_error;
 } typedef udp_start_error;
 typedef std::list<udp_start_error> UDP_STARTERRORS;
+
+union _MySockAddr {
+	SOCKADDR_IN v4;
+	SOCKADDR_IN6 v6;
+} typedef MySockAddr;
 
 }
