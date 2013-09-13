@@ -17,6 +17,4 @@
 #include <winsock.h>
 #include <WS2tcpip.h>
 
-#include <list>
-
 #include <MyLib/tstring/tstring.h>

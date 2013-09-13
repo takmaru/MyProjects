@@ -11,7 +11,7 @@ namespace MySock {
 
 class CUDPServer {
 public:
-	explicit CUDPServer(unsigned int recvTimeout/*= 0*/, int recvBuffSize/*= 0*/);
+	explicit CUDPServer(unsigned int recvTimeout = 0, int recvBuffSize = 0);
 	~CUDPServer();
 
 public:
@@ -22,7 +22,7 @@ public:
 	}
 	void stop();
 
-	MyLib::Data::BinaryData recv(unsigned int timeout = 0);
+	bool recv(MyLib::Data::BinaryData& data, unsigned int timeout = 0);
 
 	void setRecvTimeout(unsigned int timeout);
 	void setRecvBuffSize(int size);
@@ -32,6 +32,7 @@ private:
 	timeval m_recvTimeout;
 	int m_recvBufferSize;
 	MyLib::Data::BinaryData m_recvBuffer;
+	MyLib::Data::BinaryDataQueue m_recvBufferQueue;
 	UDP_STARTERRORS m_starterrors;
 };
 

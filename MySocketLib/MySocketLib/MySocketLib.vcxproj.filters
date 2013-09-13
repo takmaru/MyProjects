@@ -20,12 +20,18 @@
     </ClInclude>
     <ClInclude Include="MySockException.h" />
     <ClInclude Include="MySockTypedef.h" />
+    <ClInclude Include="UDP\UDPClient.h">
+      <Filter>UDP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>stdafx</Filter>
     </ClCompile>
     <ClCompile Include="UDP\UDPServer.cpp">
+      <Filter>UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="UDP\UDPClient.cpp">
       <Filter>UDP</Filter>
     </ClCompile>
   </ItemGroup>
