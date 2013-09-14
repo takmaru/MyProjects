@@ -10,6 +10,7 @@
 
 #include <MySocketLib/UDP/UDPServer.h>
 #include <MySocketLib/MySockException.h>
+#include <MyLib/String/StringUtil.h>
 
 HANDLE g_exitEvent = NULL;
 
@@ -44,9 +45,24 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 		// データ受信ループ
 		while(1) {
-			MyLib::Data::BinaryData recvData = udpServer.recv();
-			if(recv
+			MyLib::Data::BinaryData recvData;
+			if(udpServer.recv(recvData)) {
+				std::wcout << _T("!! arrived Data size=") << recvData.size() << std::endl <<
+					MyLib::String::toHexStr(&recvData[0], recvData.size()) << std::endl;
+			}
 			DWORD waitRet = ::WaitForSingleObject(g_exitEvent, 0);
+			if(waitRet == WAIT_OBJECT_0) {
+				std::wcout << _T("fire exit event") << std::endl;
+				break;
+			}  else if(waitRet == WAIT_ABANDONED) {
+				std::wcout << _T("exit event abandoned") << std::endl;
+				break;
+			} else if(waitRet == WAIT_FAILED) {
+				std::wcout << _T("wait exit error=") << ::GetLastError() << std::endl;
+				break;
+			} else {
+				// WAIT_TIMEOUT
+			}
 		}
 
 		// UDPサーバー 停止
@@ -73,12 +89,22 @@ int _tmain(int argc, _TCHAR* argv[]) {
 }
 
 BOOL WINAPI HandlerRoutine(DWORD ctrlType) {
+	std::wcout << _T("on ctrl=") << ctrlType << std::endl;
+
 	BOOL res = FALSE;
 	switch(ctrlType) {
 	// Ctrl+C, Ctrl+Breakは終了処理をする為にTRUEを返す
 	case CTRL_C_EVENT:
 	case CTRL_BREAK_EVENT:
-		res = TRUE;
+		if(g_exitEvent != NULL) {
+			if(::SetEvent(g_exitEvent)) {
+				res = TRUE;
+			} else {
+				std::wcout << _T("SetEvent err=") << ::GetLastError() << std::endl;
+			}
+		} else {
+			std::wcout << _T("exit event is NULL") << std::endl;
+		}
 		break;
 	// 上記以外(Close, ログオフ, シャットダウン)は強制終了させる
 	default:

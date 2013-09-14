@@ -21,5 +21,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <wincon.h>
+#include <tchar.h>
 
 #include <iostream>

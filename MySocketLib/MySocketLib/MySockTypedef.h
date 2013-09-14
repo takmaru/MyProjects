@@ -3,6 +3,7 @@
 #include <list>
 #include <winsock.h>
 #include <ws2def.h>
+#include <ws2ipdef.h>
 
 namespace MySock {
 

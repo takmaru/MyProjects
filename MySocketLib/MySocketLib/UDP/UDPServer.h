@@ -3,6 +3,8 @@
 #include <Windows.h>
 #include <WinSock2.h>
 
+#include <queue>
+
 #include <MyLib/Data/BinaryData.h>
 
 #include "../MySockTypedef.h"
@@ -10,6 +12,18 @@
 namespace MySock {
 
 class CUDPServer {
+private:
+	struct _RecvDataAddr {
+	public:
+		_RecvDataAddr(const MyLib::Data::BinaryData& d, const MySockAddr& a):
+			data(d), addr(a) {
+		}
+	public:
+		MyLib::Data::BinaryData data;
+		MySockAddr addr;
+	} typedef RecvDataAddr;
+	typedef std::queue<RecvDataAddr> RecvDataQueue;
+
 public:
 	explicit CUDPServer(unsigned int recvTimeout = 0, int recvBuffSize = 0);
 	~CUDPServer();
@@ -22,7 +36,7 @@ public:
 	}
 	void stop();
 
-	bool recv(MyLib::Data::BinaryData& data, unsigned int timeout = 0);
+	bool recv(MyLib::Data::BinaryData& data, MySockAddr* sockaddr = NULL, unsigned int timeout = 0);
 
 	void setRecvTimeout(unsigned int timeout);
 	void setRecvBuffSize(int size);
@@ -32,7 +46,7 @@ private:
 	timeval m_recvTimeout;
 	int m_recvBufferSize;
 	MyLib::Data::BinaryData m_recvBuffer;
-	MyLib::Data::BinaryDataQueue m_recvBufferQueue;
+	RecvDataQueue m_recvDatasQueue;
 	UDP_STARTERRORS m_starterrors;
 };
 

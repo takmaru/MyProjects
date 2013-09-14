@@ -15,7 +15,7 @@ namespace {
 
 MySock::CUDPServer::CUDPServer(unsigned int recvTimeout/*= 0*/, int recvBuffSize/*= 0*/):
 	m_sockets(), m_recvTimeout(),
-	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(DEFAULT_RECV_BUFFSIZE, 0), m_recvBufferQueue(),
+	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(DEFAULT_RECV_BUFFSIZE, 0), m_recvDatasQueue(),
 	m_starterrors() {
 	this->setRecvTimeout(recvTimeout);
 	this->setRecvBuffSize(recvBuffSize);
@@ -82,7 +82,19 @@ void MySock::CUDPServer::stop() {
 	m_sockets.clear();
 }
 
-bool MySock::CUDPServer::recv(MyLib::Data::BinaryData& data, unsigned int timeout/*= 0*/) {
+bool MySock::CUDPServer::recv(MyLib::Data::BinaryData& data, MySockAddr* sockaddr/*= NULL*/, unsigned int timeout/*= 0*/) {
+
+	if(m_recvDatasQueue.size() > 0) {
+		const RecvDataAddr& resultData = m_recvDatasQueue.front();
+		data = resultData.data;
+		if(sockaddr != NULL) {
+			*sockaddr = resultData.addr;
+		}
+		m_recvDatasQueue.pop();
+
+		return true;
+	}
+
 	// fd_set ‚ð\’z
 	fd_set reads = {0};
 	fd_set excepts = {0};
@@ -99,29 +111,44 @@ bool MySock::CUDPServer::recv(MyLib::Data::BinaryData& data, unsigned int timeou
 		selectTimeout.tv_usec = timeout - (m_recvTimeout.tv_sec * 1000);
 	}
 	// select
-	int ret = ::select(0, &reads, NULL, &excepts, &selectTimeout);
-	if(ret == SOCKET_ERROR) {
+	int selectRet = ::select(0, &reads, NULL, &excepts, &selectTimeout);
+	if(selectRet == SOCKET_ERROR) {
 		RAISE_MYSOCKEXCEPTION("recv select err=%d", ::WSAGetLastError());
 	}
 
-	bool isRecv = false;
-	if(ret > 0) {
+	if(selectRet > 0) {
 		// on event
 		for(SOCKET_LIST::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
 			SOCKET sock = *it;
 			if(FD_ISSET(sock, &excepts)) {
 				// error
+				std::wcout << _T("CUDPServer::recv socket excepts") << std::endl;
 			} else if(FD_ISSET(sock, &reads)) {
 				// read
 				MySockAddr mySockAddr = {0};
 				PSOCKADDR sockaddrPtr = reinterpret_cast<PSOCKADDR>(&mySockAddr.v4);
 				int sockaddrLength = sizeof(mySockAddr.v4);
-				::recvfrom(sock, (char*)&m_recvBuffer[0], m_recvBuffer.size(), 0, sockaddrPtr, &sockaddrLength);
+				int recvRet = ::recvfrom(sock, reinterpret_cast<char*>(&m_recvBuffer[0]), m_recvBuffer.size(), 0, NULL, NULL);// sockaddrPtr, &sockaddrLength);
+				if(recvRet == SOCKET_ERROR) {
+					RAISE_MYSOCKEXCEPTION("recv recvfrom err=%d", ::WSAGetLastError());
+				}
+				m_recvDatasQueue.push(RecvDataAddr(MyLib::Data::BinaryData(&m_recvBuffer[0], &m_recvBuffer[recvRet]), mySockAddr));
 			}
 		}
 	}
 
-	return isRecv;
+	if(m_recvDatasQueue.size() == 0) {
+		return false;
+	}
+
+	const RecvDataAddr& resultData = m_recvDatasQueue.front();
+	data = resultData.data;
+	if(sockaddr != NULL) {
+		*sockaddr = resultData.addr;
+	}
+	m_recvDatasQueue.pop();
+
+	return true;
 }
 
 void MySock::CUDPServer::setRecvTimeout(unsigned int timeout) {
