@@ -12,14 +12,21 @@ public:
 	~CUDPClient();
 
 public:
-	bool send(const char* host, unsigned short port, const MyLib::Data::BinaryData& data);
-	bool send(const char* host, const char* service, const MyLib::Data::BinaryData& data);
-	MYSOCKERRORS send_errors() const {
-		return m_senderrors;
-	}
+	bool sendTo(const char* host, unsigned short port, const MyLib::Data::BinaryData& data);
+	bool sendTo(const char* host, const char* service, const MyLib::Data::BinaryData& data);
 
+	void connect(const char* host, unsigned short port);
+	void connect(const char* host, const char* service);
+	void disconnect();
+	bool send(const MyLib::Data::BinaryData& data);
+
+	MYSOCKERRORS sock_errors() const {
+		return m_sockerrors;
+	}
 private:
-	MYSOCKERRORS m_senderrors;
+	SocketAddr m_connectSocket;
+	PADDRINFOA m_addrInfos;
+	MYSOCKERRORS m_sockerrors;
 };
 
 }

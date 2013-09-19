@@ -3,6 +3,7 @@
 #include "../tstring/tstring.h"
 #include <vector>
 #include <Windows.h>
+#include <WTypesbase.h>
 
 namespace MyLib {
 namespace String {

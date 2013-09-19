@@ -14,7 +14,7 @@ namespace {
 }
 
 MySock::CUDPServer::CUDPServer(unsigned int recvTimeout/*= 0*/, int recvBuffSize/*= 0*/):
-	m_sockets(), m_recvTimeout(),
+	m_sockAddrs(), m_addrInfos(NULL), m_family(AF_UNSPEC), m_recvTimeout(),
 	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(DEFAULT_RECV_BUFFSIZE, 0), m_recvDatasQueue(),
 	m_starterrors() {
 	this->setRecvTimeout(recvTimeout);
@@ -30,13 +30,13 @@ void MySock::CUDPServer::start(unsigned short port) {
 }
 void MySock::CUDPServer::start(const char* service) {
 
-	if(m_sockets.size() > 0) {
+	if(m_sockAddrs.size() > 0) {
 		RAISE_MYSOCKEXCEPTION("start is starting");
 	}
 
 	// アドレス情報取得
 	ADDRINFOA addrHints = {0};
-	addrHints.ai_family = AF_UNSPEC;
+	addrHints.ai_family = m_family;
 	addrHints.ai_socktype = SOCK_DGRAM;
 	addrHints.ai_protocol = IPPROTO_UDP;
 	addrHints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
@@ -48,7 +48,7 @@ void MySock::CUDPServer::start(const char* service) {
 
 	// アドレス情報は複数の可能性があるので、ループしてソケット生成＆バインドを実施する
 	m_starterrors.clear();
-	SOCKET_LIST sockets;
+	SocketAddrList socketAddrs;
 	for(PADDRINFOA p = addrResults; p != NULL; p = p->ai_next) {
 		// ソケット作成
 		SOCKET sock = ::socket(p->ai_family, p->ai_socktype, p->ai_protocol);
@@ -63,23 +63,31 @@ void MySock::CUDPServer::start(const char* service) {
 			continue;
 		}
 		// ソケットリストに追加
-		sockets.push_back(sock);
+		socketAddrs.push_back(SocketAddr(sock, p));
 	}
-	::freeaddrinfo(addrResults);
-	if(sockets.size() == 0) {
+	if(socketAddrs.size() == 0) {
+		::freeaddrinfo(addrResults);
 		RAISE_MYSOCKEXCEPTION("start socket create or bind err");
 	}
 
-	m_sockets.swap(sockets);
+	m_sockAddrs.swap(socketAddrs);
+	m_addrInfos = addrResults;
 }
 
 void MySock::CUDPServer::stop() {
-	for(SOCKET_LIST::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
-		if(::closesocket(*it) != 0) {
+
+	if(m_sockAddrs.size() == 0) {
+		RAISE_MYSOCKEXCEPTION("stop isn't starting");
+	}
+
+	for(SocketAddrList::iterator it = m_sockAddrs.begin(); it != m_sockAddrs.end(); it++) {
+		if(::closesocket(it->sock) != 0) {
 			RAISE_MYSOCKEXCEPTION("stop closesocket err=%d", ::WSAGetLastError());
 		}
 	}
-	m_sockets.clear();
+	m_sockAddrs.clear();
+	::freeaddrinfo(m_addrInfos);
+	m_addrInfos = NULL;
 }
 
 bool MySock::CUDPServer::recv(MyLib::Data::BinaryData& data, MySockAddr* sockaddr/*= NULL*/, unsigned int timeout/*= 0*/) {
@@ -100,9 +108,9 @@ bool MySock::CUDPServer::recv(MyLib::Data::BinaryData& data, MySockAddr* sockadd
 	fd_set excepts = {0};
 	FD_ZERO(&reads);
 	FD_ZERO(&excepts);
-	for(SOCKET_LIST::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
-		FD_SET(*it, &reads);
-		FD_SET(*it, &excepts);
+	for(SocketAddrList::iterator it = m_sockAddrs.begin(); it != m_sockAddrs.end(); ++it) {
+		FD_SET(it->sock, &reads);
+		FD_SET(it->sock, &excepts);
 	}
 	// タイムアウト値
 	timeval selectTimeout = m_recvTimeout;
@@ -118,17 +126,20 @@ bool MySock::CUDPServer::recv(MyLib::Data::BinaryData& data, MySockAddr* sockadd
 
 	if(selectRet > 0) {
 		// on event
-		for(SOCKET_LIST::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
-			SOCKET sock = *it;
+		for(SocketAddrList::iterator it = m_sockAddrs.begin(); it != m_sockAddrs.end(); ++it) {
+			SOCKET sock = it->sock;
 			if(FD_ISSET(sock, &excepts)) {
 				// error
 				std::wcout << _T("CUDPServer::recv socket excepts") << std::endl;
 			} else if(FD_ISSET(sock, &reads)) {
 				// read
 				MySockAddr mySockAddr = {0};
-				PSOCKADDR sockaddrPtr = reinterpret_cast<PSOCKADDR>(&mySockAddr.v4);
+				PSOCKADDR sockaddr = reinterpret_cast<PSOCKADDR>(&mySockAddr);
 				int sockaddrLength = sizeof(mySockAddr.v4);
-				int recvRet = ::recvfrom(sock, reinterpret_cast<char*>(&m_recvBuffer[0]), m_recvBuffer.size(), 0, NULL, NULL);// sockaddrPtr, &sockaddrLength);
+				if(it->addr->ai_family == AF_INET6) {
+					sockaddrLength = sizeof(mySockAddr.v6);
+				}
+				int recvRet = ::recvfrom(sock, reinterpret_cast<char*>(&m_recvBuffer[0]), m_recvBuffer.size(), 0, sockaddr, &sockaddrLength);
 				if(recvRet == SOCKET_ERROR) {
 					RAISE_MYSOCKEXCEPTION("recv recvfrom err=%d", ::WSAGetLastError());
 				}
@@ -149,6 +160,15 @@ bool MySock::CUDPServer::recv(MyLib::Data::BinaryData& data, MySockAddr* sockadd
 	m_recvDatasQueue.pop();
 
 	return true;
+}
+
+void MySock::CUDPServer::setFamily(int family) {
+	if(	(family != AF_UNSPEC) &&
+		(family != AF_INET) &&
+		(family != AF_INET6)	) {
+		return;
+	}
+	m_family = family;
 }
 
 void MySock::CUDPServer::setRecvTimeout(unsigned int timeout) {

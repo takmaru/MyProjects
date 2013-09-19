@@ -23,6 +23,9 @@
     <ClInclude Include="UDP\UDPClient.h">
       <Filter>UDP</Filter>
     </ClInclude>
+    <ClInclude Include="MySockUtil.h" />
+    <ClInclude Include="AddrInfo.h" />
+    <ClInclude Include="UDPSocket.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -34,5 +37,8 @@
     <ClCompile Include="UDP\UDPClient.cpp">
       <Filter>UDP</Filter>
     </ClCompile>
+    <ClCompile Include="MySockUtil.cpp" />
+    <ClCompile Include="AddrInfo.cpp" />
+    <ClCompile Include="UDPSocket.cpp" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <list>
 #include <winsock.h>
 #include <ws2def.h>
@@ -37,6 +38,7 @@ enum MySockErrorType {
 	Invalid = 0,
 	socket,
 	bind,
+	connect,
 	send,
 	less_sendlen
 };
@@ -53,8 +55,20 @@ public:
 typedef std::list<mysock_error_info> MYSOCKERRORS;
 
 union _MySockAddr {
+	SOCKADDR addr;
 	SOCKADDR_IN v4;
 	SOCKADDR_IN6 v6;
 } typedef MySockAddr;
+
+struct _SocketAddr {
+public:
+	_SocketAddr(SOCKET s, PADDRINFOA a):
+		sock(s), addr(a) {
+	}
+public:
+	SOCKET sock;
+	PADDRINFOA addr;
+} typedef SocketAddr;
+typedef std::vector<SocketAddr> SocketAddrList;
 
 }

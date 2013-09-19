@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <WinSock2.h>
 
+#include <vector>
 #include <queue>
 
 #include <MyLib/Data/BinaryData.h>
@@ -38,11 +39,14 @@ public:
 
 	bool recv(MyLib::Data::BinaryData& data, MySockAddr* sockaddr = NULL, unsigned int timeout = 0);
 
+	void setFamily(int family);
 	void setRecvTimeout(unsigned int timeout);
 	void setRecvBuffSize(int size);
 
 private:
-	SOCKET_LIST m_sockets;
+	SocketAddrList m_sockAddrs;
+	PADDRINFOA m_addrInfos;
+	int m_family;
 	timeval m_recvTimeout;
 	int m_recvBufferSize;
 	MyLib::Data::BinaryData m_recvBuffer;

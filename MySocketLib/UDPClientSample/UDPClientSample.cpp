@@ -22,11 +22,11 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 	MySock::CUDPClient udpClient;
 	try {
-		if(udpClient.send("S59009717", 60000, MyLib::Data::randomData(128))) {
+		if(udpClient.sendTo("S59009717", 60000, MyLib::Data::randomData(128))) {
 			std::wcout << _T("send success") << std::endl;
 		} else {
 			std::wcout << _T("send error") << std::endl;
-			MySock::MYSOCKERRORS errors = udpClient.send_errors();
+			MySock::MYSOCKERRORS errors = udpClient.sock_errors();
 			for(MySock::MYSOCKERRORS::iterator it = errors.begin(); it != errors.end(); ++it) {
 				std::wcout << _T("type=") << (*it).type << _T(" error=") << (*it).error << std::endl;
 			}

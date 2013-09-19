@@ -1,6 +1,11 @@
 #include "stdafx.h"
 #include "MyException.h"
 
+#include <stdio.h>
+#include <stdarg.h>
+
+#include <vector>
+
 MyLib::Exception::CMyException::CMyException():
 	std::exception(), m_what() {
 }
@@ -22,6 +27,6 @@ void MyLib::Exception::CMyException::setMessage(const char* szFileName, int nLin
     va_end(args);
 
 	std::ostringstream oss;
-	oss << "[" << (const char*)(strrchr(szFileName, '\\') + 1) << ":" << nLine << "]" << message;
+	oss << "[" << (const char*)(strrchr(szFileName, '\\') + 1) << ":" << nLine << "] " << message;
 	m_what = oss.str();
 }

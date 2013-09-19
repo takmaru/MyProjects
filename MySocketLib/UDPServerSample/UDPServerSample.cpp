@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include <MySocketLib/UDP/UDPServer.h>
+#include <MySocketLib/MySockUtil.h>
 #include <MySocketLib/MySockException.h>
 #include <MyLib/String/StringUtil.h>
 
@@ -41,13 +42,18 @@ int _tmain(int argc, _TCHAR* argv[]) {
 	MySock::CUDPServer udpServer;
 	try {
 		// UDPサーバー 開始
+		// udpServer.setFamily(AF_INET);
 		udpServer.start(60000);
+		std::wcout << _T("UDP Server Started.") << std::endl << std::endl;
 
 		// データ受信ループ
 		while(1) {
 			MyLib::Data::BinaryData recvData;
-			if(udpServer.recv(recvData)) {
+			MySock::MySockAddr sockaddr;
+			if(udpServer.recv(recvData, &sockaddr)) {
 				std::wcout << _T("!! arrived Data size=") << recvData.size() << std::endl <<
+					("from=") << MySock::addressToString(&sockaddr.addr) << std::endl <<
+					("from=") << MySock::ntop(&sockaddr.addr) << std::endl <<
 					MyLib::String::toHexStr(&recvData[0], recvData.size()) << std::endl;
 			}
 			DWORD waitRet = ::WaitForSingleObject(g_exitEvent, 0);
