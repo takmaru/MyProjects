@@ -19,10 +19,9 @@ public:
 	void close();
 
 	void bind(const MySock::MySockAddr& sockaddr);
+	void connect(const MySock::MySockAddr& sockaddr);
 
 	void recv(MyLib::Data::BinaryData& data, MySock::MySockAddr* sockaddr = NULL);
-
-	void connect();
 
 	bool sendTo(const char* host, unsigned short port, const MyLib::Data::BinaryData& data);
 	bool sendTo(const char* host, const char* service, const MyLib::Data::BinaryData& data);

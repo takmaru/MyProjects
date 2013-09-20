@@ -69,6 +69,26 @@ void MySock::CUDPSocket::bind(const MySock::MySockAddr& sockaddr) {
 	}
 }
 
+void MySock::CUDPSocket::connect(const MySock::MySockAddr& sockaddr) {
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[connect] socket isn't created!!");
+	}
+
+	int addrlen = 0;
+	if(sockaddr.addr.sa_family == AF_INET) {
+		addrlen = sizeof(sockaddr.v4);
+	} else if(sockaddr.addr.sa_family == AF_INET6) {
+		addrlen = sizeof(sockaddr.v6);
+	} else {
+		RAISE_MYSOCKEXCEPTION("[connect] unknown family");
+	}
+	// ê⁄ë±
+	if(::connect(m_sock, &sockaddr.addr, addrlen) != 0) {
+		RAISE_MYSOCKEXCEPTION("[connect] connect err=%d", ::WSAGetLastError());
+	}
+}
+
 void MySock::CUDPSocket::recv(MyLib::Data::BinaryData& data, MySock::MySockAddr* sockaddr/*= NULL*/) {
 	// check
 	if(m_sock == INVALID_SOCKET) {
@@ -91,9 +111,6 @@ void MySock::CUDPSocket::recv(MyLib::Data::BinaryData& data, MySock::MySockAddr*
 	if(sockaddr != NULL) {
 		*sockaddr = mySockAddr;
 	}
-}
-
-void MySock::CUDPSocket::connect() {
 }
 
 bool MySock::CUDPSocket::sendTo(const char* host, unsigned short port, const MyLib::Data::BinaryData& data) {
