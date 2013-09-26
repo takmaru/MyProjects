@@ -15,18 +15,23 @@ MySock::CUDPSocket::CUDPSocket():
 	m_sock(INVALID_SOCKET), m_family(AF_UNSPEC),
 	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(m_recvBufferSize, 0) {
 }
-/*
-MySock::CUDPSocket::CUDPSocket(SOCKET sock) : m_sock(sock), m_family(AF_UNSPEC) {
-	MySock::MySockAddr sockaddr = {0};
-	sockaddr.addr.sa_family = AF_INET;
-	int sockaddrlen = sizeof(sockaddr.v4);
-	int ret = ::getsockname(sock, &sockaddr.addr, &sockaddrlen);
-	std::tcout << _T("getsockname family=") << sockaddr.addr.sa_family << _T(" ret=") << ret << _T(" err=") << ::WSAGetLastError() << std::endl;
+
+MySock::CUDPSocket::CUDPSocket(CUDPSocket& obj):
+	m_sock(obj.release()), m_family(obj.m_family),
+	m_recvBufferSize(obj.m_recvBufferSize), m_recvBuffer(m_recvBufferSize, 0) {
 }
-*/
+
 MySock::CUDPSocket::~CUDPSocket() {
 	this->close();
 }
+
+SOCKET MySock::CUDPSocket::release() {
+	SOCKET sock = m_sock;
+	m_sock = INVALID_SOCKET;
+	m_family = AF_UNSPEC;
+	return sock;
+}
+
 
 void MySock::CUDPSocket::create(int family) {
 	// check
@@ -113,25 +118,38 @@ void MySock::CUDPSocket::recv(MyLib::Data::BinaryData& data, MySock::MySockAddr*
 	}
 }
 
-bool MySock::CUDPSocket::sendTo(const char* host, unsigned short port, const MyLib::Data::BinaryData& data) {
-	std::ostringstream oss;
-	oss << port;
-	return this->sendTo(host, oss.str().c_str(), data);
+void MySock::CUDPSocket::sendTo(const MySock::MySockAddr& sockaddr, const MyLib::Data::BinaryData& data) {
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[sendTo] socket isn't created!!");
+	}
+
+	int sockaddrlen = sizeof(sockaddr.v4);
+	if(sockaddr.addr.sa_family == AF_INET6) {
+		sockaddrlen = sizeof(sockaddr.v6);
+	}
+	int sendRet = ::sendto(m_sock, reinterpret_cast<const char*>(&data[0]), data.size(), 0, &sockaddr.addr, sockaddrlen);
+	if(sendRet == SOCKET_ERROR) {
+		RAISE_MYSOCKEXCEPTION("[sendTo] sendto err=%d", ::WSAGetLastError());
+	}
+	if(sendRet != data.size()) {
+		RAISE_MYSOCKEXCEPTION("[sendTo] not equal datasize(%d) sendsize(%d)", data.size(), sendRet);
+	}
 }
-bool MySock::CUDPSocket::sendTo(const char* host, const char* service, const MyLib::Data::BinaryData& data) {
-	return false;
+void MySock::CUDPSocket::send(const MyLib::Data::BinaryData& data) {
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[send] socket isn't created!!");
+	}
+
+	int sendRet = ::send(m_sock, reinterpret_cast<const char*>(&data[0]), data.size(), 0);
+	if(sendRet == SOCKET_ERROR) {
+		RAISE_MYSOCKEXCEPTION("[sendTo] sendto err=%d", ::WSAGetLastError());
+	}
+	if(sendRet != data.size()) {
+		RAISE_MYSOCKEXCEPTION("[sendTo] not equal datasize(%d) sendsize(%d)", data.size(), sendRet);
+	}
 }
-bool MySock::CUDPSocket::send(const MyLib::Data::BinaryData& data) {
-	return false;
-}
-/*
-SOCKET MySock::CUDPSocket::release() {
-	SOCKET sock = m_sock;
-	m_sock = INVALID_SOCKET;
-	m_family = AF_UNSPEC;
-	return sock;
-}
-*/
 
 bool MySock::CUDPSocket::setRecvBuffSize(int size) {
 	// check

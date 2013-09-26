@@ -26,6 +26,7 @@
     <ClInclude Include="MySockUtil.h" />
     <ClInclude Include="AddrInfo.h" />
     <ClInclude Include="UDPSocket.h" />
+    <ClInclude Include="SocketAddr.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

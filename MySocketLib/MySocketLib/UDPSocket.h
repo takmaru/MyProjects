@@ -11,8 +11,10 @@ namespace MySock {
 class CUDPSocket {
 public:
 	CUDPSocket();
-//	explicit CUDPSocket(SOCKET sock);
+	explicit CUDPSocket(CUDPSocket& obj);
 	~CUDPSocket();
+
+	SOCKET release();
 
 public:
 	void create(int family);
@@ -23,18 +25,15 @@ public:
 
 	void recv(MyLib::Data::BinaryData& data, MySock::MySockAddr* sockaddr = NULL);
 
-	bool sendTo(const char* host, unsigned short port, const MyLib::Data::BinaryData& data);
-	bool sendTo(const char* host, const char* service, const MyLib::Data::BinaryData& data);
-	bool send(const MyLib::Data::BinaryData& data);
+	void sendTo(const MySock::MySockAddr& sockaddr, const MyLib::Data::BinaryData& data);
+	void send(const MyLib::Data::BinaryData& data);
 
 public:
-//	SOCKET release();
-
 	bool setRecvBuffSize(int size);
 
-	operator SOCKET() {
+	SOCKET socket() const {
 		return m_sock;
-	}
+	};
 
 private:
 	SOCKET m_sock;

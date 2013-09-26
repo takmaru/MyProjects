@@ -13,8 +13,8 @@
 #include <MySocketLib/MySockException.h>
 #include <MyLib/String/StringUtil.h>
 
+// 終了イベント
 HANDLE g_exitEvent = NULL;
-
 // 制御コード通知ハンドラ関数
 BOOL WINAPI HandlerRoutine(DWORD ctrlType);
 

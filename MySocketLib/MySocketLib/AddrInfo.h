@@ -2,7 +2,7 @@
 
 #include <ws2def.h>
 #include <string>
-#include <list>
+#include <vector>
 
 #include <MyLib/tstring/tstring.h>
 
@@ -50,7 +50,7 @@ private:
 	int m_sockaddrlen;
 	MySock::MySockAddr m_sockaddr;
 };
-typedef std::list<CAddrInfo> AddrInfoList;
+typedef std::vector<CAddrInfo> AddrInfoList;
 
 AddrInfoList getAddrInfo(const char* host, unsigned short port, int flags, int family, int socktype, int protocol);
 AddrInfoList getAddrInfo(const char* host, const char* service, int flags, int family, int socktype, int protocol);
@@ -59,6 +59,7 @@ AddrInfoList getAddrInfo(const char* host, const char* service, const CAddrInfo&
 AddrInfoList getAddrInfo(const char* host, unsigned short port, const ADDRINFOA& hint);
 AddrInfoList getAddrInfo(const char* host, const char* service, const ADDRINFOA& hint);
 
-AddrInfoList getAddrInfoUDPClient(const char* host, int flags, int family);
+AddrInfoList getAddrInfoUDP(const char* host, unsigned short port, int flags, int family);
+AddrInfoList getAddrInfoUDP(const char* host, const char* service, int flags, int family);
 
 }

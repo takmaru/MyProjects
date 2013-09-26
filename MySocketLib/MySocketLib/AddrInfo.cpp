@@ -98,7 +98,7 @@ MySock::AddrInfoList MySock::getAddrInfo(const char* host, const char* service, 
 MySock::AddrInfoList MySock::getAddrInfo(const char* host, unsigned short port, const ADDRINFOA& hint) {
 	std::ostringstream oss;
 	oss << port;
-	return MySock::getAddrInfo(host,  oss.str().c_str(), hint);
+	return MySock::getAddrInfo(host, oss.str().c_str(), hint);
 }
 MySock::AddrInfoList MySock::getAddrInfo(const char* host, const char* service, const ADDRINFOA& hint) {
 	PADDRINFOA addrResults = NULL;
@@ -114,6 +114,11 @@ MySock::AddrInfoList MySock::getAddrInfo(const char* host, const char* service, 
 	return results;
 }
 
-MySock::AddrInfoList MySock::getAddrInfoUDPClient(const char* host, int flags, int family) {
-	return MySock::getAddrInfo(host, (char*)NULL, flags, family, SOCK_DGRAM, IPPROTO_UDP);
+MySock::AddrInfoList MySock::getAddrInfoUDP(const char* host, unsigned short port, int flags, int family) {
+	std::ostringstream oss;
+	oss << port;
+	return MySock::getAddrInfoUDP(host, oss.str().c_str(), flags, family);
+}
+MySock::AddrInfoList MySock::getAddrInfoUDP(const char* host, const char* service, int flags, int family) {
+	return MySock::getAddrInfo(host, service, flags, family, SOCK_DGRAM, IPPROTO_UDP);
 }
