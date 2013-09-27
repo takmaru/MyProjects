@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+#include <MySocketLib/AddrInfo.h>
+#include <MySocketLib/UDPSocket.h>
 #include <MySocketLib/UDP/UDPServer.h>
 #include <MySocketLib/MySockUtil.h>
 #include <MySocketLib/MySockException.h>
@@ -39,13 +41,24 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		return -1;
 	}
 
-	MySock::CUDPServer udpServer;
+//	MySock::CUDPServer udpServer;
 	try {
+		// アドレス情報取得
+		MySock::AddrInfoList addrInfos = MySock::getAddrInfoUDP(NULL, 60000, AI_PASSIVE, AF_UNSPEC);
+		MySock::UDPSocketList udpSockets;
+		for(MySock::AddrInfoList::iterator it = addrInfos.begin(); it != addrInfos.end(); ++it) {
+			MySock::CUDPSocket sock;
+			sock.create(it->family());
+			sock.bind(it->sockaddr());
+			MySock::addressToString(&sock.getSockAddr().addr);
+			udpSockets.push_back(sock);
+		}
+/*
 		// UDPサーバー 開始
 		// udpServer.setFamily(AF_INET);
 		udpServer.start(60000);
 		std::wcout << _T("UDP Server Started.") << std::endl << std::endl;
-
+*/
 		// データ受信ループ
 		while(1) {
 			MyLib::Data::BinaryData recvData;
@@ -72,7 +85,10 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		}
 
 		// UDPサーバー 停止
-		udpServer.stop();
+		for(MySock::UDPSocketList::iterator it = udpSockets.begin(); it != udpSockets.end(); ++it) {
+			it->close();
+		}
+//		udpServer.stop();
 	} catch(MySock::CMySockException& e) {
 		std::cout << e.what() << std::endl;
 	}

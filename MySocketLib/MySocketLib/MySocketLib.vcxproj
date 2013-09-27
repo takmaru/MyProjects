@@ -78,6 +78,7 @@
     <ClInclude Include="MySockTypedef.h" />
     <ClInclude Include="MySockUtil.h" />
     <ClInclude Include="SocketAddr.h" />
+    <ClInclude Include="SocketSelector.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="UDPSocket.h" />
@@ -87,6 +88,7 @@
   <ItemGroup>
     <ClCompile Include="AddrInfo.cpp" />
     <ClCompile Include="MySockUtil.cpp" />
+    <ClCompile Include="SocketSelector.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

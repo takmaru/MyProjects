@@ -4,6 +4,7 @@
 #include <WS2tcpip.h>
 
 #include <sstream>
+#include <iomanip>
 
 #include <MyLib/String/StringUtil.h>
 
@@ -65,13 +66,30 @@ std::tstring MySock::CAddrInfo::descpription() const {
 	}
 
 	std::tostringstream oss;
-	oss << _T("CAddrInfo")
-		_T(" flags=") << m_flags <<
-		_T(" family=") << m_family <<
-		_T(" socktype=") << m_socktype <<
-		_T(" protocol=") << m_protocol <<
-		_T(" name=") << name <<
-		_T(" sockaddr=") << MySock::addressToString((const PSOCKADDR)&m_sockaddr.addr);
+	// protocol
+	if(	(m_socktype == SOCK_DGRAM) &&
+		(m_protocol == IPPROTO_UDP)	) {
+		oss << _T("protocol:UDP");
+	} else 
+	if(	(m_socktype == SOCK_STREAM) &&
+		(m_protocol == IPPROTO_TCP)	) {
+		oss << _T("protocol:TCP");
+	} else {
+		oss << _T("socktype:") << m_socktype << _T(" protocol:") << m_protocol;
+	}
+	// family
+	if(m_family == AF_INET) {
+		oss << _T(" family:IPv4");
+	} else
+	if(m_family == AF_INET6) {
+		oss << _T(" family:IPv6");
+	} else {
+		oss << _T(" family:") << m_family;
+	}
+	// address string
+	oss << _T(" addrstr:") << MySock::addressToString((const PSOCKADDR)&m_sockaddr.addr);
+	// flags
+	oss << std::setfill(L'0') << std::right << std::hex << std::setw(8) << m_flags;
 	return oss.str();
 }
 

@@ -8,8 +8,8 @@
 #include <MySocketLib/AddrInfo.h>
 #include <MySocketLib/UDPSocket.h>
 #include <MySocketLib/SocketAddr.h>
-#include <MySocketLib/UDP/UDPClient.h>
 #include <MySocketLib/MySockException.h>
+#include <MySocketLib/MySockUtil.h>
 #include <MyLib/Data/BinaryData.h>
 #include <MyLib/Data/DataUtil.h>
 #include <MyLib/tstring/tstring.h>
@@ -75,10 +75,10 @@ int _tmain(int argc, _TCHAR* argv[]) {
 				if((unsigned int)inputValue < addrInfos.size()) {
 					if(addrInfos[inputValue].family() == AF_INET) {
 						socket_v4.sendTo(addrInfos[inputValue].sockaddr(), MyLib::Data::randomData(32));
-						std::tcout << _T("送信しました。(IPv4)") << std::endl;
+						std::tcout << _T("送信しました。(IPv4) ") << MySock::addressToString(&socket_v4.getSockAddr().addr) << std::endl;
 					} else if(addrInfos[inputValue].family() == AF_INET6) {
 						socket_v6.sendTo(addrInfos[inputValue].sockaddr(), MyLib::Data::randomData(64));
-						std::tcout << _T("送信しました。(IPv6)") << std::endl;
+						std::tcout << _T("送信しました。(IPv6) ") << MySock::addressToString(&socket_v6.getSockAddr().addr) << std::endl;
 					} else {
 						std::tcout << _T("宛先のプロトコルが不明です。 family=") << addrInfos[inputValue].family() << std::endl;
 					}

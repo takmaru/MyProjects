@@ -2,6 +2,8 @@
 
 #include <WinSock2.h>
 
+#include <vector>
+
 #include <MyLib/Data/BinaryData.h>
 
 #include "MySockTypedef.h"
@@ -29,6 +31,10 @@ public:
 	void send(const MyLib::Data::BinaryData& data);
 
 public:
+	MySock::MySockAddr getSockAddr();
+	MySock::MySockAddr getPeerAddr();
+
+public:
 	bool setRecvBuffSize(int size);
 
 	SOCKET socket() const {
@@ -38,8 +44,11 @@ public:
 private:
 	SOCKET m_sock;
 	int m_family;
+	MySock::MySockAddr m_mySockAddr;
+	MySock::MySockAddr m_peerSockAddr;
 	int m_recvBufferSize;
 	MyLib::Data::BinaryData m_recvBuffer;
 };
+typedef std::vector<CUDPSocket> UDPSocketList;
 
 }

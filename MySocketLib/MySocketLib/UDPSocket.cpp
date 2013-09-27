@@ -12,12 +12,14 @@ namespace {
 }
 
 MySock::CUDPSocket::CUDPSocket():
-	m_sock(INVALID_SOCKET), m_family(AF_UNSPEC),
+	m_sock(INVALID_SOCKET), m_family(AF_UNSPEC), m_mySockAddr(), m_peerSockAddr(),
 	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(m_recvBufferSize, 0) {
+	m_mySockAddr.addr.sa_family = AF_UNSPEC;
+	m_peerSockAddr.addr.sa_family = AF_UNSPEC;
 }
 
 MySock::CUDPSocket::CUDPSocket(CUDPSocket& obj):
-	m_sock(obj.release()), m_family(obj.m_family),
+	m_sock(obj.release()), m_family(obj.m_family), m_mySockAddr(obj.m_mySockAddr), m_peerSockAddr(obj.m_peerSockAddr),
 	m_recvBufferSize(obj.m_recvBufferSize), m_recvBuffer(m_recvBufferSize, 0) {
 }
 
@@ -124,6 +126,7 @@ void MySock::CUDPSocket::sendTo(const MySock::MySockAddr& sockaddr, const MyLib:
 		RAISE_MYSOCKEXCEPTION("[sendTo] socket isn't created!!");
 	}
 
+	// send
 	int sockaddrlen = sizeof(sockaddr.v4);
 	if(sockaddr.addr.sa_family == AF_INET6) {
 		sockaddrlen = sizeof(sockaddr.v6);
@@ -142,6 +145,7 @@ void MySock::CUDPSocket::send(const MyLib::Data::BinaryData& data) {
 		RAISE_MYSOCKEXCEPTION("[send] socket isn't created!!");
 	}
 
+	// send
 	int sendRet = ::send(m_sock, reinterpret_cast<const char*>(&data[0]), data.size(), 0);
 	if(sendRet == SOCKET_ERROR) {
 		RAISE_MYSOCKEXCEPTION("[sendTo] sendto err=%d", ::WSAGetLastError());
@@ -149,6 +153,52 @@ void MySock::CUDPSocket::send(const MyLib::Data::BinaryData& data) {
 	if(sendRet != data.size()) {
 		RAISE_MYSOCKEXCEPTION("[sendTo] not equal datasize(%d) sendsize(%d)", data.size(), sendRet);
 	}
+}
+
+MySock::MySockAddr MySock::CUDPSocket::getSockAddr() {
+	// cache
+	if(m_mySockAddr.addr.sa_family != AF_UNSPEC) {
+		return m_mySockAddr;
+	}
+
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[getSockAddr] socket isn't created!!");
+	}
+
+	// get
+	int sockaddrlen = sizeof(m_mySockAddr.v4);
+	if(m_family == AF_INET6) {
+		sockaddrlen = sizeof(m_mySockAddr.v6);
+	}
+	int ret = ::getsockname(m_sock, &m_mySockAddr.addr, &sockaddrlen);
+	if(ret != 0) {
+		RAISE_MYSOCKEXCEPTION("[getSockAddr] getsockname err=%d", ::WSAGetLastError());
+	}
+	return m_mySockAddr;
+}
+
+MySock::MySockAddr MySock::CUDPSocket::getPeerAddr() {
+	// cache
+	if(m_peerSockAddr.addr.sa_family != AF_UNSPEC) {
+		return m_peerSockAddr;
+	}
+
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[getPeerAddr] socket isn't created!!");
+	}
+
+	// get
+	int sockaddrlen = sizeof(m_peerSockAddr.v4);
+	if(m_family == AF_INET6) {
+		sockaddrlen = sizeof(m_peerSockAddr.v6);
+	}
+	int ret = ::getpeername(m_sock, &m_peerSockAddr.addr, &sockaddrlen);
+	if(ret != 0) {
+		RAISE_MYSOCKEXCEPTION("[getPeerAddr] getsockname err=%d", ::WSAGetLastError());
+	}
+	return m_peerSockAddr;
 }
 
 bool MySock::CUDPSocket::setRecvBuffSize(int size) {
