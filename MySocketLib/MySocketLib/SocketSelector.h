@@ -10,10 +10,11 @@
 namespace MySock {
 
 typedef unsigned int SelectFlg;
-const SelectFlg SelectWrite	= 0x1;
-const SelectFlg SelectRead	= 0x2;
-const SelectFlg SelectError	= 0x4;
+const SelectFlg kSelectRead		= 0x1;
+const SelectFlg kSelectWrite	= 0x2;
+const SelectFlg kSelectExcept	= 0x4;
 typedef std::map<SelectFlg, SOCKET_LIST> SelectResults;
+typedef std::pair<SelectFlg, SOCKET_LIST> SelectResultsPair;
 
 class CSocketSelector {
 private:
@@ -41,8 +42,8 @@ public:
 	SelectResults select();
 	SelectResults select(unsigned int timeout);
 
-	void addSocket(SOCKET sock, unsigned int flg);
-	void removeSocket(SOCKET sock, unsigned int flg);
+	void addSocket(SOCKET sock, SelectFlg flg);
+	void removeSocket(SOCKET sock);
 	void clearSockets();
 
 public:

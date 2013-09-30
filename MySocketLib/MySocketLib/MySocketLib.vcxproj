@@ -82,8 +82,6 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="UDPSocket.h" />
-    <ClInclude Include="UDP\UDPClient.h" />
-    <ClInclude Include="UDP\UDPServer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AddrInfo.cpp" />
@@ -94,8 +92,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="UDPSocket.cpp" />
-    <ClCompile Include="UDP\UDPClient.cpp" />
-    <ClCompile Include="UDP\UDPServer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

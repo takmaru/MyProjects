@@ -89,7 +89,7 @@ std::tstring MySock::CAddrInfo::descpription() const {
 	// address string
 	oss << _T(" addrstr:") << MySock::addressToString((const PSOCKADDR)&m_sockaddr.addr);
 	// flags
-	oss << std::setfill(L'0') << std::right << std::hex << std::setw(8) << m_flags;
+	oss << _T(" flags:0x") << std::setfill(L'0') << std::right << std::hex << std::setw(8) << m_flags;
 	return oss.str();
 }
 

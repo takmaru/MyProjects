@@ -4,9 +4,6 @@
     <Filter Include="stdafx">
       <UniqueIdentifier>{957db3f4-193e-4147-9258-119fddc1f0cb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UDP">
-      <UniqueIdentifier>{e4b1a925-b2f9-4c21-9943-9b690beb8e3d}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -15,14 +12,8 @@
     <ClInclude Include="targetver.h">
       <Filter>stdafx</Filter>
     </ClInclude>
-    <ClInclude Include="UDP\UDPServer.h">
-      <Filter>UDP</Filter>
-    </ClInclude>
     <ClInclude Include="MySockException.h" />
     <ClInclude Include="MySockTypedef.h" />
-    <ClInclude Include="UDP\UDPClient.h">
-      <Filter>UDP</Filter>
-    </ClInclude>
     <ClInclude Include="MySockUtil.h" />
     <ClInclude Include="AddrInfo.h" />
     <ClInclude Include="UDPSocket.h" />
@@ -32,12 +23,6 @@
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>stdafx</Filter>
-    </ClCompile>
-    <ClCompile Include="UDP\UDPServer.cpp">
-      <Filter>UDP</Filter>
-    </ClCompile>
-    <ClCompile Include="UDP\UDPClient.cpp">
-      <Filter>UDP</Filter>
     </ClCompile>
     <ClCompile Include="MySockUtil.cpp" />
     <ClCompile Include="AddrInfo.cpp" />

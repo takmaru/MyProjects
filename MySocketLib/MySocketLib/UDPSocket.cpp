@@ -18,22 +18,13 @@ MySock::CUDPSocket::CUDPSocket():
 	m_peerSockAddr.addr.sa_family = AF_UNSPEC;
 }
 
-MySock::CUDPSocket::CUDPSocket(CUDPSocket& obj):
-	m_sock(obj.release()), m_family(obj.m_family), m_mySockAddr(obj.m_mySockAddr), m_peerSockAddr(obj.m_peerSockAddr),
+MySock::CUDPSocket::CUDPSocket(const CUDPSocket& obj):
+	m_sock(obj.m_sock), m_family(obj.m_family), m_mySockAddr(obj.m_mySockAddr), m_peerSockAddr(obj.m_peerSockAddr),
 	m_recvBufferSize(obj.m_recvBufferSize), m_recvBuffer(m_recvBufferSize, 0) {
 }
 
 MySock::CUDPSocket::~CUDPSocket() {
-	this->close();
 }
-
-SOCKET MySock::CUDPSocket::release() {
-	SOCKET sock = m_sock;
-	m_sock = INVALID_SOCKET;
-	m_family = AF_UNSPEC;
-	return sock;
-}
-
 
 void MySock::CUDPSocket::create(int family) {
 	// check
@@ -114,7 +105,8 @@ void MySock::CUDPSocket::recv(MyLib::Data::BinaryData& data, MySock::MySockAddr*
 	}
 
 	// result set
-	data = m_recvBuffer;
+	data.resize(recvRet);
+	data.assign(m_recvBuffer.begin(), m_recvBuffer.begin() + recvRet);
 	if(sockaddr != NULL) {
 		*sockaddr = mySockAddr;
 	}

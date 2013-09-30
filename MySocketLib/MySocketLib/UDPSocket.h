@@ -13,10 +13,8 @@ namespace MySock {
 class CUDPSocket {
 public:
 	CUDPSocket();
-	explicit CUDPSocket(CUDPSocket& obj);
+	CUDPSocket(const CUDPSocket& obj);
 	~CUDPSocket();
-
-	SOCKET release();
 
 public:
 	void create(int family);

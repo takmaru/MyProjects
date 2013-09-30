@@ -7,7 +7,8 @@
 
 #include <iostream>
 
-#include <MySocketLib/UDP/UDPClient.h>
+#include <MySocketLib/AddrInfo.h>
+#include <MySocketLib/UDPSocket.h>
 #include <MySocketLib/MySockException.h>
 #include <MyLib/Data/BinaryData.h>
 #include <MyLib/Data/DataUtil.h>
@@ -20,16 +21,17 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		return -1;
 	}
 
-	MySock::CUDPClient udpClient;
 	try {
-		if(udpClient.sendTo("S59009717", 60000, MyLib::Data::randomData(128))) {
-			std::wcout << _T("send success") << std::endl;
+		// サーバーのアドレス情報取得
+		MySock::AddrInfoList addrInfos = MySock::getAddrInfoUDP("S59009717", 60000, 0, AF_UNSPEC);
+		if(addrInfos.size() > 0) {
+			MySock::CAddrInfo& addrinfo = addrInfos[0];
+			MySock::CUDPSocket socket;
+			socket.create(addrinfo.family());
+			socket.sendTo(addrinfo.sockaddr(), MyLib::Data::randomData(128));
+			socket.close();
 		} else {
-			std::wcout << _T("send error") << std::endl;
-			MySock::MYSOCKERRORS errors = udpClient.sock_errors();
-			for(MySock::MYSOCKERRORS::iterator it = errors.begin(); it != errors.end(); ++it) {
-				std::wcout << _T("type=") << (*it).type << _T(" error=") << (*it).error << std::endl;
-			}
+			std::wcout << _T("addrinfo is none") << std::endl;
 		}
 	} catch(MySock::CMySockException& e) {
 		std::cout << e.what() << std::endl;
