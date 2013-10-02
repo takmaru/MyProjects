@@ -1,20 +1,12 @@
-// UDPServerSample.cpp : コンソール アプリケーションのエントリ ポイントを定義します。
+// TCPServerSample.cpp : コンソール アプリケーションのエントリ ポイントを定義します。
 //
 
 #include "stdafx.h"
 
-#include <winsock2.h>
-#include <wincon.h>
-
-#include <iostream>
-
-#include <MySocketLib/AddrInfo.h>
-#include <MySocketLib/UDPSocket.h>
-#include <MySocketLib/SocketSelector.h>
-#include <MySocketLib/MySockUtil.h>
-#include <MySocketLib/MySockException.h>
-#include <MyLib/String/StringUtil.h>
 #include <MyLib/tstring/tstring.h>
+#include <MySocketLib/AddrInfo.h>
+#include <MySocketLib/TCPSocket.h>
+#include <MySocketLib/SocketSelector.h>
 
 // 終了イベント
 HANDLE g_exitEvent = NULL;
@@ -46,56 +38,24 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		// アドレス情報取得
 		MySock::AddrInfoList addrInfos = MySock::getAddrInfoUDP(NULL, 60000, AI_PASSIVE, AF_UNSPEC);
 		// 待ち受けソケット＆selectオブジェクト 作成
-		MySock::UDPSocketList udpSockets;
+		MySock::TCPSocketList tcpSockets;
 		MySock::CSocketSelector selector;
 		for(MySock::AddrInfoList::iterator it = addrInfos.begin(); it != addrInfos.end(); ++it) {
-			MySock::CUDPSocket sock;
+			MySock::CTCPSocket sock;
 			// 待ち受けソケット作成
 			sock.create(it->family());
 			sock.bind(it->sockaddr());
+			sock.listen();
 			std::wcout << MySock::addressToString(&sock.getSockAddr().addr) << std::endl;
 			// selectオブジェクトへ追加
 			selector.addSocket(sock.socket(), MySock::kSelectRead | MySock::kSelectExcept);
-			udpSockets.push_back(sock);
+			tcpSockets.push_back(sock);
 		}
 
-		// データ受信ループ
+		// 接続待ち受けループ
 		while(1) {
-			// select
-			MySock::SelectResults selectResult = selector.select();
-			
-			{	// except
-				MySock::SOCKET_LIST exceptSockets = selectResult[MySock::kSelectExcept];
-				for(MySock::SOCKET_LIST::iterator it = exceptSockets.begin(); it != exceptSockets.end(); ++it) {
-					for(MySock::UDPSocketList::iterator itUdp = udpSockets.begin(); itUdp != udpSockets.end(); ++itUdp) {
-						if(itUdp->socket() == (*it)) {
-							std::wcout << _T("except socket ") << MySock::addressToString(&itUdp->getSockAddr().addr) << std::endl;
-							break;
-						}
-					}
-				}
-			}
-			{	// read
-				MySock::SOCKET_LIST readSockets = selectResult[MySock::kSelectRead];
-				for(MySock::SOCKET_LIST::iterator it = readSockets.begin(); it != readSockets.end(); ++it) {
-					for(MySock::UDPSocketList::iterator itUdp = udpSockets.begin(); itUdp != udpSockets.end(); ++itUdp) {
-						if(itUdp->socket() == (*it)) {
-							// 受信
-							MyLib::Data::BinaryData recvData;
-							MySock::MySockAddr sockaddr = {0};
-							itUdp->recv(recvData, &sockaddr);
-							std::wcout << _T("!! arrived Data size=") << recvData.size() << std::endl <<
-								("from=") << MySock::addressToString(&sockaddr.addr) << std::endl <<
-								("to=") << MySock::addressToString(&itUdp->getSockAddr().addr) << std::endl <<
-								MyLib::String::toHexStr(&recvData[0], recvData.size()) << std::endl;
-							// そのまま返信
-							itUdp->sendTo(sockaddr, recvData);
-							break;
-						}
-					}
-				}
-			}
 
+			// 終了確認
 			DWORD waitRet = ::WaitForSingleObject(g_exitEvent, 0);
 			if(waitRet == WAIT_OBJECT_0) {
 				std::wcout << _T("fire exit event") << std::endl;
@@ -111,10 +71,6 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			}
 		}
 
-		// UDPサーバー 停止
-		for(MySock::UDPSocketList::iterator it = udpSockets.begin(); it != udpSockets.end(); ++it) {
-			it->close();
-		}
 
 	} catch(MySock::CMySockException& e) {
 		std::cout << e.what() << std::endl;

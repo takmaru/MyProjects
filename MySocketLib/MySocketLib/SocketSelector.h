@@ -20,18 +20,6 @@ class CSocketSelector {
 private:
 	typedef std::map<SOCKET, SelectFlg> SelectSockets;
 	typedef std::pair<SOCKET, SelectFlg> SelectSocketsPair;
-/*
-	struct _SelectSocket {
-	public:
-		_SelectSocket() : sock(INVALID_SOCKET), selectFlg(0) {}
-		_SelectSocket(SOCKET s, unsigned int flg):
-			sock(s), selectFlg(flg) {}
-		~_SelectSocket() {}
-	public:
-		SOCKET sock;
-		unsigned int selectFlg;
-	} typedef SelectSocket;
-*/
 
 public:
 	CSocketSelector();

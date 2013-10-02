@@ -62,4 +62,6 @@ AddrInfoList getAddrInfo(const char* host, const char* service, const ADDRINFOA&
 AddrInfoList getAddrInfoUDP(const char* host, unsigned short port, int flags, int family);
 AddrInfoList getAddrInfoUDP(const char* host, const char* service, int flags, int family);
 
+AddrInfoList getAddrInfoTCP(const char* host, unsigned short port, int flags, int family);
+AddrInfoList getAddrInfoTCP(const char* host, const char* service, int flags, int family);
 }

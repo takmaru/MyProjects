@@ -19,6 +19,8 @@
     <ClInclude Include="UDPSocket.h" />
     <ClInclude Include="SocketAddr.h" />
     <ClInclude Include="SocketSelector.h" />
+    <ClInclude Include="TCPSocket.h" />
+    <ClInclude Include="SocketBase.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -28,5 +30,7 @@
     <ClCompile Include="AddrInfo.cpp" />
     <ClCompile Include="UDPSocket.cpp" />
     <ClCompile Include="SocketSelector.cpp" />
+    <ClCompile Include="TCPSocket.cpp" />
+    <ClCompile Include="SocketBase.cpp" />
   </ItemGroup>
 </Project>

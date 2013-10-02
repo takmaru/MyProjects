@@ -140,3 +140,12 @@ MySock::AddrInfoList MySock::getAddrInfoUDP(const char* host, unsigned short por
 MySock::AddrInfoList MySock::getAddrInfoUDP(const char* host, const char* service, int flags, int family) {
 	return MySock::getAddrInfo(host, service, flags, family, SOCK_DGRAM, IPPROTO_UDP);
 }
+
+MySock::AddrInfoList MySock::getAddrInfoTCP(const char* host, unsigned short port, int flags, int family) {
+	std::ostringstream oss;
+	oss << port;
+	return MySock::getAddrInfoUDP(host, oss.str().c_str(), flags, family);
+}
+MySock::AddrInfoList MySock::getAddrInfoTCP(const char* host, const char* service, int flags, int family) {
+	return MySock::getAddrInfo(host, service, flags, family, SOCK_STREAM, IPPROTO_TCP);
+}
