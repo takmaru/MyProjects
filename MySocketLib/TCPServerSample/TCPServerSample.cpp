@@ -105,6 +105,10 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			}
 		}
 
+		// 接続済みソケット 停止
+		for(MySock::TCPSocketList::iterator it = acceptSockets.begin(); it != acceptSockets.end(); ++it) {
+			it->close();
+		}
 		// TCPサーバー 停止
 		for(MySock::TCPSocketList::iterator it = listenSockets.begin(); it != listenSockets.end(); ++it) {
 			it->close();

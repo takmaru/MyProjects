@@ -44,7 +44,7 @@ MySock::CTCPSocket MySock::CTCPSocket::accept(MySock::MySockAddr* sockaddr/*= NU
 		sockaddrlen = sizeof(mySockAddr.v6);
 	}
 	SOCKET sock = ::accept(m_sock, &mySockAddr.addr, &sockaddrlen);
-	if(sock != INVALID_SOCKET) {
+	if(sock == INVALID_SOCKET) {
 		RAISE_MYSOCKEXCEPTION("[accept] accept err=%d", ::WSAGetLastError());
 	}
 

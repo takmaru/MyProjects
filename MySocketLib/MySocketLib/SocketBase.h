@@ -28,6 +28,8 @@ public:
 
 	void send(const MyLib::Data::BinaryData& data);
 
+	void setBlockingMode(bool isBlock);
+
 public:
 	MySock::MySockAddr getSockAddr();
 	MySock::MySockAddr getPeerAddr();

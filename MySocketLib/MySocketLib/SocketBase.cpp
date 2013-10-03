@@ -90,7 +90,10 @@ void MySock::CSocketBase::connect(const MySock::MySockAddr& sockaddr) {
 	}
 	// 接続
 	if(::connect(m_sock, &sockaddr.addr, addrlen) != 0) {
-		RAISE_MYSOCKEXCEPTION("[connect] connect err=%d", ::WSAGetLastError());
+		int err = ::WSAGetLastError();
+		if(err != WSAEWOULDBLOCK) {
+			RAISE_MYSOCKEXCEPTION("[connect] connect err=%d", ::WSAGetLastError());
+		}
 	}
 	// 接続先アドレスのキャッシュクリア
 	m_peerSockAddr.addr.sa_family = AF_UNSPEC;
@@ -109,6 +112,21 @@ void MySock::CSocketBase::send(const MyLib::Data::BinaryData& data) {
 	}
 	if(sendRet != data.size()) {
 		RAISE_MYSOCKEXCEPTION("[send] not equal datasize(%d) sendsize(%d)", data.size(), sendRet);
+	}
+}
+
+void MySock::CSocketBase::setBlockingMode(bool isBlock) {
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[setBlockingMode] socket isn't created!!");
+	}
+
+	u_long arg = 0;	// blocking mode
+	if(!isBlock) {
+		arg = 1;	// non-blocking mode
+	}
+	if(::ioctlsocket(m_sock, FIONBIO, &arg) != 0) {
+		RAISE_MYSOCKEXCEPTION("[setBlockingMode] ioctlsocket err=%d", ::WSAGetLastError());
 	}
 }
 

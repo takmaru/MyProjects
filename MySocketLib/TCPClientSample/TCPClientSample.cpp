@@ -7,6 +7,8 @@
 #include <MySocketLib/AddrInfo.h>
 #include <MySocketLib/TCPSocket.h>
 #include <MySocketLib/SocketSelector.h>
+#include <MySocketLib/MySockUtil.h>
+#include <MySocketLib/MySockException.h>
 
 // 終了イベント
 HANDLE g_exitEvent = NULL;
@@ -36,24 +38,55 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 	try {
 		// アドレス情報取得
-		MySock::AddrInfoList addrInfos = MySock::getAddrInfoUDP(NULL, 60000, AI_PASSIVE, AF_UNSPEC);
-		// 待ち受けソケット＆selectオブジェクト 作成
-		MySock::TCPSocketList tcpSockets;
-		MySock::CSocketSelector selector;
+		MySock::AddrInfoList addrInfos = MySock::getAddrInfoTCP("S59009717", 60000, 0, AF_UNSPEC);
+		// TCPクライアントソケット作成＆接続時selectオブジェクト 作成
+		MySock::TCPSocketList connectSockets;
+		MySock::CSocketSelector connectSelector;
 		for(MySock::AddrInfoList::iterator it = addrInfos.begin(); it != addrInfos.end(); ++it) {
 			MySock::CTCPSocket sock;
-			// 待ち受けソケット作成
+			// TCPクライアントソケット作成
 			sock.create(it->family());
-			sock.bind(it->sockaddr());
-			sock.listen();
-			std::wcout << MySock::addressToString(&sock.getSockAddr().addr) << std::endl;
+			sock.setBlockingMode(false);
+			sock.connect(it->sockaddr());
 			// selectオブジェクトへ追加
-			selector.addSocket(sock.socket(), MySock::kSelectRead | MySock::kSelectExcept);
-			tcpSockets.push_back(sock);
+			connectSelector.addSocket(sock.socket(), MySock::kSelectWrite | MySock::kSelectExcept);
+			connectSockets.push_back(sock);
 		}
 
-		// 接続待ち受けループ
-		while(1) {
+		// 接続待ちループ
+		MySock::TCPSocketList connectedSockets;
+		while(!connectSockets.empty()) {
+			// select
+			MySock::SelectResults selectResult = connectSelector.select();
+
+			{	// except
+				MySock::SOCKET_LIST exceptSockets = selectResult[MySock::kSelectExcept];
+				for(MySock::SOCKET_LIST::iterator it = exceptSockets.begin(); it != exceptSockets.end(); ++it) {
+					for(MySock::TCPSocketList::iterator itTcp = connectSockets.begin(); itTcp != connectSockets.end(); ++itTcp) {
+						if(itTcp->socket() == (*it)) {
+							std::wcout << _T("except socket") << std::endl;
+							itTcp->close();
+							connectSockets.erase(itTcp);
+							break;
+						}
+					}
+				}
+			}
+			{	// write
+				MySock::SOCKET_LIST writeSockets = selectResult[MySock::kSelectWrite];
+				for(MySock::SOCKET_LIST::iterator it = writeSockets.begin(); it != writeSockets.end(); ++it) {
+					for(MySock::TCPSocketList::iterator itTcp = connectSockets.begin(); itTcp != connectSockets.end(); ++itTcp) {
+						if(itTcp->socket() == (*it)) {
+							// connected
+							std::wcout << _T("connect socket ") << MySock::addressToString(&itTcp->getSockAddr().addr) <<
+								_T(" to ") << MySock::addressToString(&itTcp->getPeerAddr().addr) << std::endl;
+							connectedSockets.push_back(*itTcp);
+							connectSockets.erase(itTcp);
+							break;
+						}
+					}
+				}
+			}
 
 			// 終了確認
 			DWORD waitRet = ::WaitForSingleObject(g_exitEvent, 0);
@@ -71,6 +104,10 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			}
 		}
 
+		// 接続済みソケット 停止
+		for(MySock::TCPSocketList::iterator it = connectedSockets.begin(); it != connectedSockets.end(); ++it) {
+			it->close();
+		}
 
 	} catch(MySock::CMySockException& e) {
 		std::cout << e.what() << std::endl;
