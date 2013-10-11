@@ -3,6 +3,7 @@
 #include <WinSock2.h>
 
 #include <vector>
+#include <set>
 
 #include <MyLib/Data/BinaryData.h>
 
@@ -16,7 +17,7 @@ public:
 	CTCPSocket();
 	CTCPSocket(const CTCPSocket& obj);
 	CTCPSocket(SOCKET sock, int family);
-	~CTCPSocket();
+	virtual ~CTCPSocket();
 
 public:
 	void create(int family);
@@ -24,5 +25,6 @@ public:
 	CTCPSocket accept(MySock::MySockAddr* sockaddr = NULL);
 };
 typedef std::vector<CTCPSocket> TCPSocketList;
+//typedef std::set<CTCPSocket> TCPSocketSet;
 
 }

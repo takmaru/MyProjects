@@ -16,7 +16,7 @@ public:
 	CUDPSocket();
 	CUDPSocket(const CUDPSocket& obj);
 	CUDPSocket(SOCKET sock, int family);
-	~CUDPSocket();
+	virtual ~CUDPSocket();
 
 public:
 	void create(int family);

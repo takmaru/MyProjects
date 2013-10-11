@@ -45,7 +45,7 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 	}
 
 	// select
-	int selectRet = ::select(0, &reads, &writes, &excepts, &selectTimeout);
+	int selectRet = ::select(0, &reads, &writes, &excepts, ((timeout == INFINITE) ? NULL : &selectTimeout));
 	if(selectRet == SOCKET_ERROR) {
 		RAISE_MYSOCKEXCEPTION("[select] select err=%d", ::WSAGetLastError());
 	}

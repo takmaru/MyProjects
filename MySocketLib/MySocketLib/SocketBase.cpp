@@ -18,7 +18,7 @@ MySock::CSocketBase::CSocketBase():
 	m_peerSockAddr.addr.sa_family = AF_UNSPEC;
 }
 
-MySock::CSocketBase::CSocketBase(const CSocketBase& obj):
+MySock::CSocketBase::CSocketBase(const MySock::CSocketBase& obj):
 	m_sock(obj.m_sock), m_family(obj.m_family), m_mySockAddr(obj.m_mySockAddr), m_peerSockAddr(obj.m_peerSockAddr),
 	m_recvBufferSize(obj.m_recvBufferSize), m_recvBuffer(m_recvBufferSize, 0) {
 }
@@ -31,6 +31,10 @@ MySock::CSocketBase::CSocketBase(SOCKET sock, int family):
 }
 
 MySock::CSocketBase::~CSocketBase() {
+}
+
+bool MySock::CSocketBase::operator<(const MySock::CSocketBase& obj) {
+	return (m_sock < obj.m_sock);
 }
 
 void MySock::CSocketBase::create_socket(int family, int type, int protocol) {

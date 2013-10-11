@@ -3,6 +3,7 @@
 #include <WinSock2.h>
 
 #include <list>
+#include <set>
 #include <map>
 
 #include "MySockTypedef.h"

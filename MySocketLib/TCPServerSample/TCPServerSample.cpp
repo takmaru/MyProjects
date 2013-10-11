@@ -39,7 +39,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 	try {
 		// アドレス情報取得
-		MySock::AddrInfoList addrInfos = MySock::getAddrInfoUDP(NULL, 60000, AI_PASSIVE, AF_UNSPEC);
+		MySock::AddrInfoList addrInfos = MySock::getAddrInfoTCP(NULL, 60000, AI_PASSIVE, AF_UNSPEC);
 		// 待ち受けソケット＆selectオブジェクト 作成
 		MySock::TCPSocketList listenSockets;
 		MySock::CSocketSelector selector;

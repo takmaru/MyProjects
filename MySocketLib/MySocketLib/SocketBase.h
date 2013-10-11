@@ -2,7 +2,7 @@
 
 #include <WinSock2.h>
 
-#include <vector>
+#include <set>
 
 #include <MyLib/Data/BinaryData.h>
 
@@ -13,9 +13,12 @@ namespace MySock {
 class CSocketBase {
 public:
 	CSocketBase();
-	CSocketBase(const CSocketBase& obj);
+	CSocketBase(const MySock::CSocketBase& obj);
 	CSocketBase(SOCKET sock, int family);
 	virtual ~CSocketBase();
+
+public:
+	bool operator<(const MySock::CSocketBase& obj);
 
 protected:
 	void create_socket(int family, int type, int protocol);
@@ -41,6 +44,24 @@ public:
 		return m_sock;
 	};
 
+	void setIsConnected(bool v) {
+		m_isConnected = v;
+	};
+	void setIsWriteable(bool v) {
+		m_isWriteable = v;
+	};
+	void setIsReadable(bool v) {
+		m_isReadable = v;
+	};
+	bool isConnected() const {
+		return m_isConnected;
+	};
+	bool isWriteable() const {
+		return m_isWriteable;
+	};
+	bool isReadable() const {
+		return m_isReadable;
+	};
 protected:
 	SOCKET m_sock;
 	int m_family;
@@ -48,7 +69,18 @@ protected:
 	MySock::MySockAddr m_peerSockAddr;
 	int m_recvBufferSize;
 	MyLib::Data::BinaryData m_recvBuffer;
+
+	bool m_isConnected;
+	bool m_isWriteable;
+	bool m_isReadable;
 };
-typedef std::vector<CSocketBase> SocketList;
+
+class compareSocketBase {
+public:
+	bool operator()(CSocketBase* obj1, CSocketBase* obj2) const {
+		return (obj1->socket() < obj2->socket());
+	}
+};
+typedef std::set<CSocketBase*, compareSocketBase> SocketSet;
 
 }
