@@ -4,8 +4,11 @@
 #include "stdafx.h"
 
 #include <vector>
+#include <algorithm>
 
 #include <MyLib/tstring/tstring.h>
+#include <MyLib/String/StringUtil.h>
+#include <MyLib/Data/DataUtil.h>
 #include <MySocketLib/AddrInfo.h>
 #include <MySocketLib/TCPSocket.h>
 #include <MySocketLib/SocketSelector.h>
@@ -18,26 +21,19 @@ namespace {
 	const SocketState kSockState_Connecting		= 0x00000002;
 	const SocketState kSockState_Readable		= 0x00000004;
 	const SocketState kSockState_Writeable		= 0x00000008;
+	const SocketState kSockState_Closing		= 0x00000010;
+	const SocketState kSockState_Closed			= 0x00000020;
 
-//	typedef std::pair<MySock::CTCPSocket, int> SocketStatePair;
 	class CTCPSocketStateful : public MySock::CTCPSocket {
 	public:
 		CTCPSocketStateful() : MySock::CTCPSocket(),
-			m_state(0), m_lastDataSendTime() {
-			m_lastDataSendTime.dwHighDateTime = 0;
-			m_lastDataSendTime.dwLowDateTime = 0;
+			m_state(0), m_lastDataSendTickCount(0) {
 		}
 		CTCPSocketStateful(const CTCPSocketStateful& obj) : MySock::CTCPSocket(obj),
-			m_state(0), m_lastDataSendTime() {
-			m_lastDataSendTime.dwHighDateTime = 0;
-			m_lastDataSendTime.dwLowDateTime = 0;
-
+			m_state(0), m_lastDataSendTickCount(0) {
 		}
 		CTCPSocketStateful(SOCKET sock, int family) : MySock::CTCPSocket(sock, family),
-			m_state(0), m_lastDataSendTime() {
-			m_lastDataSendTime.dwHighDateTime = 0;
-			m_lastDataSendTime.dwLowDateTime = 0;
-
+			m_state(0), m_lastDataSendTickCount(0) {
 		}
 		virtual ~CTCPSocketStateful() {
 		}
@@ -48,17 +44,30 @@ namespace {
 		void resetState(SocketState state) {
 			m_state &= ~state;
 		}
-		bool isSetState(SocketState state) {
+		bool isSetState(SocketState state) const {
 			return ((m_state & state) != 0);
 		}
 		SocketState state() const {
 			return m_state;
 		}
+		bool canSend() const {
+			return (	(m_lastDataSendTickCount == 0) ||
+						((::GetTickCount() - m_lastDataSendTickCount) > 1000)	);
+		}
+		void setSendTickCount(DWORD tickCount) {
+			m_lastDataSendTickCount = tickCount;
+		}
 	private:
 		SocketState m_state;
-		FILETIME m_lastDataSendTime;
+		DWORD m_lastDataSendTickCount;
 	};
 	typedef std::vector<CTCPSocketStateful> StatefulTCPSocketList;
+	class IsClosedSocket {
+	public:
+		bool operator()(const CTCPSocketStateful& sock) {
+			return sock.isSetState(kSockState_Closed);
+		}
+	};
 };
 
 
@@ -121,11 +130,19 @@ int _tmain(int argc, _TCHAR* argv[]) {
 					} else if(it->isSetState(kSockState_Connecting)) {
 						// 接続済みソケット
 						int selectflg = MySock::kSelectExcept;	// exceptは常にセット
-						if(!it->isSetState(kSockState_Readable)) {
-							selectflg |= MySock::kSelectRead;
-						}
-						if(!it->isSetState(kSockState_Writeable)) {
-							selectflg |= MySock::kSelectWrite;
+						if(!it->isSetState(kSockState_Closing)) {
+							// 接続中（受信可能、送信可能の両方を確認する）
+							if(!it->isSetState(kSockState_Readable)) {
+								selectflg |= MySock::kSelectRead;
+							}
+							if(!it->isSetState(kSockState_Writeable)) {
+								selectflg |= MySock::kSelectWrite;
+							}
+						} else {
+							// クローズ処理中（書込み可能かどうかだけ確認する）
+							if(!it->isSetState(kSockState_Writeable)) {
+								selectflg |= MySock::kSelectWrite;
+							}
 						}
 						selector.addSocket(it->socket(), selectflg);
 					} else {
@@ -208,16 +225,39 @@ int _tmain(int argc, _TCHAR* argv[]) {
 				for(StatefulTCPSocketList::iterator it = tcpSockets.begin(); it != tcpSockets.end(); ++it) {
 					CTCPSocketStateful& tcpSocket = (*it);
 					if(tcpSocket.isSetState(kSockState_Readable)) {
-						// 受信処理 or クローズ処理
+						// 受信可能
+						MyLib::Data::BinaryData recvData = tcpSocket.recv();
+						if(recvData.size() > 0) {
+							// データ受信
+							std::wcout << _T("recv data size=") << recvData.size() << std::endl <<
+								_T(" my=") << MySock::addressToString(&tcpSocket.getSockAddr().addr) << std::endl <<
+								_T(" peer=") << MySock::addressToString(&tcpSocket.getPeerAddr().addr) << std::endl <<
+								MyLib::String::toHexStr(&recvData[0], recvData.size()) << std::endl;
+						} else {
+							// 接続先送信不可通知の受信（クローズ状態へ）
+							tcpSocket.setState(kSockState_Closing);
+						}
 
 						tcpSocket.resetState(kSockState_Readable);
 					}
 					if(tcpSocket.isSetState(kSockState_Writeable)) {
-						// 送信処理
-
-						tcpSocket.resetState(kSockState_Writeable);
+						// 送信可能
+						if(tcpSocket.canSend()) {
+							// 送信必要
+							tcpSocket.send(MyLib::Data::randomData(128));
+							tcpSocket.resetState(kSockState_Writeable);
+							tcpSocket.setSendTickCount(::GetTickCount());
+						}
+						if(!tcpSocket.isSetState(kSockState_Closing)) {
+							// クローズ状態
+							tcpSocket.shutdown(SD_SEND);
+							tcpSocket.close();
+							tcpSocket.setState(kSockState_Closed);
+						}
 					}
 				}
+				// クローズしたソケットをリストから削除
+				std::remove_if(tcpSockets.begin(), tcpSockets.end(), IsClosedSocket());
 			}
 
 			// 終了確認

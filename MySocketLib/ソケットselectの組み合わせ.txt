@@ -1,0 +1,14 @@
+ソケットselectの組み合わせ
+
+listenソケット
+sock→bind→listen
+　read：connectしてきたソケットあり。accept可能。
+
+connectソケット
+　write:send可能。connect成功。
+　except:connect失敗。
+
+establishedソケット
+　read:recv可能。recvの結果が0の場合、相手は送信できない状態。（送信shutdownされたか、close(FIN_WAIT2)か、ソケットがいないか）
+　write:send可能。
+　except:OOB(Out Of Bounds)データ（帯域外、緊急データ）のrecv可能。

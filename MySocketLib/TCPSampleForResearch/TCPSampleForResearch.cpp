@@ -51,6 +51,10 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			serverSocket.listen();
 		}
 
+		// TCPサーバー select
+		std::tcout << _T("TCPサーバーのイベント待ち クライアントconnect前") << std::endl;
+		socket_select(serverSocket.socket(), 0);
+
 		// TCP LISTENING ソケットに対してUDP送信しても、プロトコルが違うので反応しない
 		/*
 		std::tcout << _T("TCPサーバーへUDP送信") << std::endl;
@@ -78,27 +82,85 @@ int _tmain(int argc, _TCHAR* argv[]) {
 				※ポートが不正な場合、即except。	*/
 		}
 
-		// サーバーselect前 の TCPクライアント select
-		std::tcout << _T("TCPクライアントのイベント待ち　サーバーselect前") << std::endl;
-		socket_select(clientSocket.socket(), INFINITE);
-
 		// TCPサーバー select
-		std::tcout << _T("TCPサーバーのイベント待ち") << std::endl;
-		socket_select(serverSocket.socket(), INFINITE);
+		std::tcout << _T("TCPサーバーのイベント待ち クライアントconnect後") << std::endl;
+		socket_select(serverSocket.socket(), 0);
 
-		// サーバーaccept前 の TCPクライアント select
-		std::tcout << _T("TCPクライアントのイベント待ち　サーバーaccept前") << std::endl;
-		socket_select(clientSocket.socket(), INFINITE);
+		// clientソケット select
+		std::tcout << _T("clientソケットのイベント待ち　サーバーaccept前") << std::endl;
+		socket_select(clientSocket.socket(), 0);
 
+		// TCPサーバー accept
+		MySock::CTCPSocket acceptSocket = serverSocket.accept();
+
+		// acceptソケット select
+		std::tcout << _T("acceptソケットのイベント待ち サーバーaccept後") << std::endl;
+		socket_select(acceptSocket.socket(), 0);
+		// clientソケット select
+		std::tcout << _T("clientソケットのイベント待ち　サーバーaccept後") << std::endl;
+		socket_select(clientSocket.socket(), 0);
+
+		// acceptソケット send
+		acceptSocket.send(MyLib::Data::randomData(256));
+		// clientソケット send
 		clientSocket.send(MyLib::Data::randomData(128));
 
-		// TCPサーバー select
-		std::tcout << _T("TCPサーバーのイベント待ち") << std::endl;
-		socket_select(serverSocket.socket(), INFINITE);
+		// acceptソケット select
+		std::tcout << _T("acceptソケットのイベント待ち send後") << std::endl;
+		socket_select(acceptSocket.socket(), 0);
+		// clientソケット select
+		std::tcout << _T("clientソケットのイベント待ち　send後") << std::endl;
+		socket_select(clientSocket.socket(), 0);
 
-		// TCPクライアント select
-		std::tcout << _T("TCPクライアントのイベント待ち　３回目") << std::endl;
-		socket_select(clientSocket.socket(), INFINITE);
+		// acceptソケット recv
+		std::tcout << _T("acceptソケット recv=") << acceptSocket.recv().size() << _T("byte") << std::endl;
+		// clientソケット recv
+		std::tcout << _T("clientソケット recv=") << clientSocket.recv().size() << _T("byte") << std::endl;
+
+		// acceptソケット select
+		std::tcout << _T("acceptソケットのイベント待ち recv後") << std::endl;
+		socket_select(acceptSocket.socket(), 0);
+		// clientソケット select
+		std::tcout << _T("clientソケットのイベント待ち　recv後") << std::endl;
+		socket_select(clientSocket.socket(), 0);
+
+		// GracefulClose from clientソケット
+		clientSocket.shutdown(SD_SEND);
+// clientソケット close
+//clientSocket.close();
+		// acceptソケット select
+		std::tcout << _T("acceptソケットのイベント待ち clientソケットのshutdown後") << std::endl;
+		socket_select(acceptSocket.socket(), 0);
+		// acceptソケット recv
+		std::tcout << _T("acceptソケット recv=") << acceptSocket.recv().size() << _T("byte") << std::endl;
+// acceptソケット recv
+//std::tcout << _T("acceptソケット recv=") << acceptSocket.recv().size() << _T("byte") << std::endl;
+		// acceptソケット send & shutdown
+		acceptSocket.send(MyLib::Data::randomData(512));
+		socket_select(acceptSocket.socket(), 0);
+		acceptSocket.send(MyLib::Data::randomData(64));
+		socket_select(acceptSocket.socket(), 0);
+		acceptSocket.shutdown(SD_SEND);
+		socket_select(acceptSocket.socket(), 0);
+		// acceptソケット close
+		acceptSocket.close();
+		// clientソケット select & recv
+		std::tcout << _T("clientソケットのイベント待ち＆recv　acceptソケットのsend後") << std::endl;
+		int clientRecvSize = 0;
+		do {
+			socket_select(clientSocket.socket(), 0);
+			clientRecvSize = clientSocket.recv().size();
+			std::tcout << _T("clientソケット recv=") << clientRecvSize << _T("byte") << std::endl;
+		} while(clientRecvSize != 0);
+		socket_select(clientSocket.socket(), 0);
+		std::tcout << _T("clientソケット recv=") << clientSocket.recv().size() << _T("byte") << std::endl;
+		// clientソケット close
+		clientSocket.close();
+
+		// serverソケット shutdownはエラー
+		//serverSocket.shutdown(SD_RECEIVE);
+		// serverソケット close
+		serverSocket.close();
 
 	} catch(MySock::CMySockException& e) {
 		std::cout << e.what() << std::endl;

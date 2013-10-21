@@ -23,8 +23,8 @@ public:
 	void create(int family);
 	void listen();
 	CTCPSocket accept(MySock::MySockAddr* sockaddr = NULL);
+	MyLib::Data::BinaryData recv();
 };
 typedef std::vector<CTCPSocket> TCPSocketList;
-//typedef std::set<CTCPSocket> TCPSocketSet;
 
 }

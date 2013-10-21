@@ -50,3 +50,26 @@ MySock::CTCPSocket MySock::CTCPSocket::accept(MySock::MySockAddr* sockaddr/*= NU
 
 	return MySock::CTCPSocket(sock, m_family);
 }
+
+MyLib::Data::BinaryData MySock::CTCPSocket::recv() {
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[recv] socket isn't created!!");
+	}
+
+	MyLib::Data::BinaryData result;
+	// recv
+	int recvRet = ::recv(m_sock, reinterpret_cast<char*>(&m_recvBuffer[0]), m_recvBuffer.size(), 0);
+	if(recvRet == SOCKET_ERROR) {
+		RAISE_MYSOCKEXCEPTION("[recv] recv err=%d", ::WSAGetLastError());
+	}
+
+	// result set
+	if(recvRet > 0) {
+		result.resize(recvRet);
+		result.assign(m_recvBuffer.begin(), m_recvBuffer.begin() + recvRet);
+	}
+
+	// if(recvRet == 0)	{socket is close}
+	return result;
+}

@@ -58,6 +58,17 @@ void MySock::CSocketBase::close() {
 	}
 }
 
+void MySock::CSocketBase::shutdown(int how) {
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[shutdown] socket isn't created!!");
+	}
+	// シャットダウン
+	if(::shutdown(m_sock, how) != 0) {
+		RAISE_MYSOCKEXCEPTION("[shutdown] shutdown err=%d", ::WSAGetLastError());
+	}
+}
+
 void MySock::CSocketBase::bind(const MySock::MySockAddr& sockaddr) {
 	// check
 	if(m_sock == INVALID_SOCKET) {

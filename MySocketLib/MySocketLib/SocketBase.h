@@ -25,6 +25,7 @@ protected:
 
 public:
 	void close();
+	void shutdown(int how);
 
 	void bind(const MySock::MySockAddr& sockaddr);
 	void connect(const MySock::MySockAddr& sockaddr);
