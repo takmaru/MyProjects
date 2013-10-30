@@ -3,12 +3,31 @@
 #include <WinSock2.h>
 
 #include <set>
+#include <list>
 
 #include <MyLib/Data/BinaryData.h>
 
 #include "MySockTypedef.h"
 
 namespace MySock {
+
+enum SocketState {
+	kSockState_Invalid = 0,
+	kSockState_Created,
+	kSockState_Binded,
+	kSockState_WaitConnect,
+	kSockState_Connecting,
+	kSockState_Listening,
+	kSockState_GracefulClosing,
+	kSockState_Closed
+};
+typedef unsigned int SocketIOState;
+const SocketIOState kSocketIOState_Readable			= 0x00000001;
+const SocketIOState kSocketIOState_Acceptable		= 0x00000001;
+const SocketIOState kSocketIOState_Writeable		= 0x00000002;
+const SocketIOState kSocketIOState_RecvOutOfBand	= 0x00000004;
+const SocketIOState kSocketIOState_RecvFin			= 0x00000010;
+const SocketIOState kSocketIOState_SendFin			= 0x00000020;
 
 class CSocketBase {
 public:
@@ -44,25 +63,32 @@ public:
 	SOCKET socket() const {
 		return m_sock;
 	};
+	virtual int protocol() const = 0;
 
-	void setIsConnected(bool v) {
-		m_isConnected = v;
-	};
-	void setIsWriteable(bool v) {
-		m_isWriteable = v;
-	};
-	void setIsReadable(bool v) {
-		m_isReadable = v;
-	};
-	bool isConnected() const {
-		return m_isConnected;
-	};
-	bool isWriteable() const {
-		return m_isWriteable;
-	};
-	bool isReadable() const {
-		return m_isReadable;
-	};
+	void setState(SocketState State) {
+		m_state = State;
+	}
+	SocketState state() const {
+		return m_state;
+	}
+
+	void setIOState(SocketIOState state) {
+		m_ioState |= state;
+	}
+	void resetIOState(SocketIOState state) {
+		m_ioState &= ~state;
+	}
+	bool isIOState(SocketIOState state) const {
+		return ((m_ioState & state) != 0);
+	}
+	SocketIOState ioState() const {
+		return m_ioState;
+	}
+
+	bool isBlocking() const {
+		return m_isBlocking;
+	}
+
 protected:
 	SOCKET m_sock;
 	int m_family;
@@ -71,9 +97,9 @@ protected:
 	int m_recvBufferSize;
 	MyLib::Data::BinaryData m_recvBuffer;
 
-	bool m_isConnected;
-	bool m_isWriteable;
-	bool m_isReadable;
+	SocketState m_state;
+	SocketIOState m_ioState;
+	bool m_isBlocking;
 };
 
 class compareSocketBase {
@@ -83,5 +109,6 @@ public:
 	}
 };
 typedef std::set<CSocketBase*, compareSocketBase> SocketSet;
+typedef std::list<CSocketBase*> SocketList;
 
 }

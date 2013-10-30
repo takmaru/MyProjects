@@ -13,19 +13,22 @@ namespace {
 
 MySock::CSocketBase::CSocketBase():
 	m_sock(INVALID_SOCKET), m_family(AF_UNSPEC), m_mySockAddr(), m_peerSockAddr(),
-	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(m_recvBufferSize, 0) {
+	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(m_recvBufferSize, 0),
+	m_state(kSockState_Invalid), m_ioState(0), m_isBlocking(false) {
 	m_mySockAddr.addr.sa_family = AF_UNSPEC;
 	m_peerSockAddr.addr.sa_family = AF_UNSPEC;
 }
 
 MySock::CSocketBase::CSocketBase(const MySock::CSocketBase& obj):
 	m_sock(obj.m_sock), m_family(obj.m_family), m_mySockAddr(obj.m_mySockAddr), m_peerSockAddr(obj.m_peerSockAddr),
-	m_recvBufferSize(obj.m_recvBufferSize), m_recvBuffer(m_recvBufferSize, 0) {
+	m_recvBufferSize(obj.m_recvBufferSize), m_recvBuffer(m_recvBufferSize, 0),
+	m_state(obj.m_state), m_ioState(obj.m_ioState), m_isBlocking(obj.m_isBlocking) {
 }
 
 MySock::CSocketBase::CSocketBase(SOCKET sock, int family):
 	m_sock(sock), m_family(family), m_mySockAddr(), m_peerSockAddr(),
-	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(m_recvBufferSize, 0) {
+	m_recvBufferSize(DEFAULT_RECV_BUFFSIZE), m_recvBuffer(m_recvBufferSize, 0),
+	m_state(kSockState_Invalid), m_ioState(0), m_isBlocking(false) {
 	m_mySockAddr.addr.sa_family = AF_UNSPEC;
 	m_peerSockAddr.addr.sa_family = AF_UNSPEC;
 }
@@ -48,14 +51,19 @@ void MySock::CSocketBase::create_socket(int family, int type, int protocol) {
 		RAISE_MYSOCKEXCEPTION("[create_socket] socket err=%d", ::WSAGetLastError());
 	}
 	m_family = family;
+	// 状態遷移：作成済
+	m_state = kSockState_Created;
 }
 void MySock::CSocketBase::close() {
-	if(m_sock != INVALID_SOCKET) {
-		if(::closesocket(m_sock) != 0) {
-			std::tcerr << _T("CSocketBase::close closesocket err=") << ::WSAGetLastError() << std::endl;
-		}
-		m_sock = INVALID_SOCKET;
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		return;
 	}
+	if(::closesocket(m_sock) != 0) {
+		std::tcerr << _T("CSocketBase::close closesocket err=") << ::WSAGetLastError() << std::endl;
+	}
+	// 状態遷移：ソケットクローズ
+	m_state = kSockState_Closed;
 }
 
 void MySock::CSocketBase::shutdown(int how) {
@@ -67,6 +75,10 @@ void MySock::CSocketBase::shutdown(int how) {
 	if(::shutdown(m_sock, how) != 0) {
 		RAISE_MYSOCKEXCEPTION("[shutdown] shutdown err=%d", ::WSAGetLastError());
 	}
+	// 状態遷移：クローズ処理中
+	m_state = kSockState_GracefulClosing;
+	// Fin送信
+	this->setIOState(kSocketIOState_SendFin);
 }
 
 void MySock::CSocketBase::bind(const MySock::MySockAddr& sockaddr) {
@@ -87,6 +99,8 @@ void MySock::CSocketBase::bind(const MySock::MySockAddr& sockaddr) {
 	if(::bind(m_sock, &sockaddr.addr, addrlen) != 0) {
 		RAISE_MYSOCKEXCEPTION("[bind] bind err=%d", ::WSAGetLastError());
 	}
+	// 状態遷移：バインド済
+	m_state = kSockState_Binded;
 }
 
 void MySock::CSocketBase::connect(const MySock::MySockAddr& sockaddr) {
@@ -110,6 +124,8 @@ void MySock::CSocketBase::connect(const MySock::MySockAddr& sockaddr) {
 			RAISE_MYSOCKEXCEPTION("[connect] connect err=%d", ::WSAGetLastError());
 		}
 	}
+	// 状態遷移：接続待ち
+	m_state = kSockState_WaitConnect;
 	// 接続先アドレスのキャッシュクリア
 	m_peerSockAddr.addr.sa_family = AF_UNSPEC;
 }
@@ -125,6 +141,8 @@ void MySock::CSocketBase::send(const MyLib::Data::BinaryData& data) {
 	if(sendRet == SOCKET_ERROR) {
 		RAISE_MYSOCKEXCEPTION("[send] sendto err=%d", ::WSAGetLastError());
 	}
+	// Write通知Off
+	this->resetIOState(kSocketIOState_Writeable);
 	if(sendRet != data.size()) {
 		RAISE_MYSOCKEXCEPTION("[send] not equal datasize(%d) sendsize(%d)", data.size(), sendRet);
 	}
@@ -143,6 +161,7 @@ void MySock::CSocketBase::setBlockingMode(bool isBlock) {
 	if(::ioctlsocket(m_sock, FIONBIO, &arg) != 0) {
 		RAISE_MYSOCKEXCEPTION("[setBlockingMode] ioctlsocket err=%d", ::WSAGetLastError());
 	}
+	m_isBlocking = isBlock;
 }
 
 MySock::MySockAddr MySock::CSocketBase::getSockAddr() {

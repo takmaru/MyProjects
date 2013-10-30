@@ -159,7 +159,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 							if(isConnect_v6) {
 								socket_v6.send(MyLib::Data::randomData(64));
 								std::tcout << _T("‘—M‚µ‚Ü‚µ‚½B(IPv6) ") << MySock::addressToString(&socket_v6.getSockAddr().addr) <<
-									_T(" to ") << MySock::addressToString(&socket_v4.getPeerAddr().addr) << std::endl;
+									_T(" to ") << MySock::addressToString(&socket_v6.getPeerAddr().addr) << std::endl;
 							} else {
 								std::tcout << _T("–¢Ú‘±‚Å‚·B(IPv6) ") << std::endl;
 							}

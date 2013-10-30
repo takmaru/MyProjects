@@ -20,9 +20,12 @@ public:
 
 public:
 	void create(int family);
-	void recv(MyLib::Data::BinaryData& data, MySock::MySockAddr* sockaddr = NULL);
+	void recv(MyLib::Data::BinaryData& data, MySock::MySockAddr* sockaddr, bool& isSendError);
 	void sendTo(const MySock::MySockAddr& sockaddr, const MyLib::Data::BinaryData& data);
+public:
+	virtual int protocol() const {
+		return IPPROTO_UDP;
+	}
 };
-typedef std::vector<CUDPSocket> UDPSocketList;
 
 }

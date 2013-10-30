@@ -7,20 +7,25 @@
 #include <map>
 
 #include "MySockTypedef.h"
+#include "SocketBase.h"
 
 namespace MySock {
 
-typedef unsigned int SelectFlg;
-const SelectFlg kSelectRead		= 0x1;
-const SelectFlg kSelectWrite	= 0x2;
-const SelectFlg kSelectExcept	= 0x4;
-typedef std::map<SelectFlg, SOCKET_LIST> SelectResults;
-typedef std::pair<SelectFlg, SOCKET_LIST> SelectResultsPair;
+typedef unsigned int SelectResult;
+const SelectResult kResultConnectSuccess	= 1;
+const SelectResult kResultConnectFailed		= 2;
+const SelectResult kResultAcceptable		= 3;
+const SelectResult kResultReadable			= 4;
+const SelectResult kResultWriteable			= 5;
+const SelectResult kResultExcept			= 6;
+typedef std::map<SelectResult, MySock::SocketSet> SelectResults;
+typedef std::pair<SelectResult, MySock::SocketSet> SelectResultsPair;
 
 class CSocketSelector {
-private:
-	typedef std::map<SOCKET, SelectFlg> SelectSockets;
-	typedef std::pair<SOCKET, SelectFlg> SelectSocketsPair;
+//private:
+//	typedef std::map<SOCKET, SelectFlg> SelectSockets;
+//	typedef std::pair<SOCKET, SelectFlg> SelectSocketsPair;
+//	typedef std::set<CSocketBase*> SelectSockets;
 
 public:
 	CSocketSelector();
@@ -31,15 +36,15 @@ public:
 	SelectResults select();
 	SelectResults select(unsigned int timeout);
 
-	void addSocket(SOCKET sock, SelectFlg flg);
-	void removeSocket(SOCKET sock);
+	void addSocket(CSocketBase* sock);
+	void removeSocket(CSocketBase* sock);
 	void clearSockets();
 
 public:
 	void setTimeout(unsigned int timeout);
 
 private:
-	SelectSockets m_sockets;
+	MySock::SocketSet m_sockets;
 	unsigned int m_timeout;
 };
 

@@ -29,6 +29,8 @@ void MySock::CTCPSocket::listen() {
 	if(::listen(m_sock, SOMAXCONN) != 0) {
 		RAISE_MYSOCKEXCEPTION("[listen] listen err=%d", ::WSAGetLastError());
 	}
+	// 状態遷移：リッスン中
+	m_state = kSockState_Listening;
 }
 
 MySock::CTCPSocket MySock::CTCPSocket::accept(MySock::MySockAddr* sockaddr/*= NULL*/) {
@@ -47,8 +49,13 @@ MySock::CTCPSocket MySock::CTCPSocket::accept(MySock::MySockAddr* sockaddr/*= NU
 	if(sock == INVALID_SOCKET) {
 		RAISE_MYSOCKEXCEPTION("[accept] accept err=%d", ::WSAGetLastError());
 	}
+	// accept通知Off
+	this->resetIOState(kSocketIOState_Acceptable);
 
-	return MySock::CTCPSocket(sock, m_family);
+	// 接続ソケット作成 状態遷移：接続中
+	MySock::CTCPSocket acceptSocket(sock, m_family);
+	acceptSocket.setState(kSockState_Connecting);
+	return acceptSocket;
 }
 
 MyLib::Data::BinaryData MySock::CTCPSocket::recv() {
@@ -66,10 +73,17 @@ MyLib::Data::BinaryData MySock::CTCPSocket::recv() {
 
 	// result set
 	if(recvRet > 0) {
+		// データ受信
 		result.resize(recvRet);
 		result.assign(m_recvBuffer.begin(), m_recvBuffer.begin() + recvRet);
+		// Read通知Off
+		this->resetIOState(kSocketIOState_Readable);
+	} else if(recvRet == 0) {
+		// 状態遷移：クローズ処理中
+		m_state = kSockState_GracefulClosing;
+		// Fin受信
+		this->setIOState(kSocketIOState_RecvFin);
 	}
 
-	// if(recvRet == 0)	{socket is close}
 	return result;
 }

@@ -18,7 +18,7 @@ void MySock::CUDPSocket::create(int family) {
 	CSocketBase::create_socket(family, SOCK_DGRAM, IPPROTO_UDP);
 }
 
-void MySock::CUDPSocket::recv(MyLib::Data::BinaryData& data, MySock::MySockAddr* sockaddr/*= NULL*/) {
+void MySock::CUDPSocket::recv(MyLib::Data::BinaryData& data, MySock::MySockAddr* sockaddr, bool& isSendError) {
 	// check
 	if(m_sock == INVALID_SOCKET) {
 		RAISE_MYSOCKEXCEPTION("[recv] socket isn't created!!");
@@ -30,17 +30,28 @@ void MySock::CUDPSocket::recv(MyLib::Data::BinaryData& data, MySock::MySockAddr*
 	if(m_family == AF_INET6) {
 		sockaddrlen = sizeof(mySockAddr.v6);
 	}
+	isSendError = false;
 	int recvRet = ::recvfrom(m_sock, reinterpret_cast<char*>(&m_recvBuffer[0]), m_recvBuffer.size(), 0, &mySockAddr.addr, &sockaddrlen);
 	if(recvRet == SOCKET_ERROR) {
-		RAISE_MYSOCKEXCEPTION("[recv] recvfrom err=%d", ::WSAGetLastError());
+		int err = ::WSAGetLastError();
+		if(err == WSAECONNRESET) {
+			// pre send result is ICMP "Port Unreachable" message.
+			isSendError = true;
+		} else {
+			RAISE_MYSOCKEXCEPTION("[recv] recvfrom err=%d", err);
+		}
 	}
 
-	// result set
-	data.resize(recvRet);
-	data.assign(m_recvBuffer.begin(), m_recvBuffer.begin() + recvRet);
-	if(sockaddr != NULL) {
-		*sockaddr = mySockAddr;
+	if(!isSendError) {
+		// 送信エラーでなければ結果セット
+		data.resize(recvRet);
+		data.assign(m_recvBuffer.begin(), m_recvBuffer.begin() + recvRet);
+		if(sockaddr != NULL) {
+			*sockaddr = mySockAddr;
+		}
 	}
+	// Read通知Off
+	this->resetIOState(kSocketIOState_Readable);
 }
 
 void MySock::CUDPSocket::sendTo(const MySock::MySockAddr& sockaddr, const MyLib::Data::BinaryData& data) {
@@ -58,6 +69,12 @@ void MySock::CUDPSocket::sendTo(const MySock::MySockAddr& sockaddr, const MyLib:
 	if(sendRet == SOCKET_ERROR) {
 		RAISE_MYSOCKEXCEPTION("[sendTo] sendto err=%d", ::WSAGetLastError());
 	}
+	if(this->m_state == kSockState_Created) {
+		// 状態遷移：作成済み→バインド済
+		m_state = kSockState_Binded;
+	}
+	// Write通知Off
+	this->resetIOState(kSocketIOState_Writeable);
 	if(sendRet != data.size()) {
 		RAISE_MYSOCKEXCEPTION("[sendTo] not equal datasize(%d) sendsize(%d)", data.size(), sendRet);
 	}

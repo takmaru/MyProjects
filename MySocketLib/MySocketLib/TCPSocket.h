@@ -24,6 +24,10 @@ public:
 	void listen();
 	CTCPSocket accept(MySock::MySockAddr* sockaddr = NULL);
 	MyLib::Data::BinaryData recv();
+public:
+	virtual int protocol() const {
+		return IPPROTO_TCP;
+	}
 };
 typedef std::vector<CTCPSocket> TCPSocketList;
 

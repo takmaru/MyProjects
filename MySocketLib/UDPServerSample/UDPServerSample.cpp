@@ -46,17 +46,17 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		// アドレス情報取得
 		MySock::AddrInfoList addrInfos = MySock::getAddrInfoUDP(NULL, 60000, AI_PASSIVE, AF_UNSPEC);
 		// 待ち受けソケット＆selectオブジェクト 作成
-		MySock::UDPSocketList udpSockets;
+		MySock::SocketSet udpSockets;
 		MySock::CSocketSelector selector;
 		for(MySock::AddrInfoList::iterator it = addrInfos.begin(); it != addrInfos.end(); ++it) {
-			MySock::CUDPSocket sock;
+			MySock::CUDPSocket* sock = new MySock::CUDPSocket();
 			// 待ち受けソケット作成
-			sock.create(it->family());
-			sock.bind(it->sockaddr());
-			std::wcout << MySock::addressToString(&sock.getSockAddr().addr) << std::endl;
+			sock->create(it->family());
+			sock->bind(it->sockaddr());
+			std::wcout << MySock::addressToString(&(sock->getSockAddr().addr)) << std::endl;
 			// selectオブジェクトへ追加
-			selector.addSocket(sock.socket(), MySock::kSelectRead | MySock::kSelectExcept);
-			udpSockets.push_back(sock);
+			udpSockets.insert(sock);
+			selector.addSocket(sock);
 		}
 
 		// データ受信ループ
@@ -64,34 +64,29 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			// select
 			MySock::SelectResults selectResult = selector.select();
 			
-			{	// except
-				MySock::SOCKET_LIST exceptSockets = selectResult[MySock::kSelectExcept];
-				for(MySock::SOCKET_LIST::iterator it = exceptSockets.begin(); it != exceptSockets.end(); ++it) {
-					for(MySock::UDPSocketList::iterator itUdp = udpSockets.begin(); itUdp != udpSockets.end(); ++itUdp) {
-						if(itUdp->socket() == (*it)) {
-							std::wcout << _T("except socket ") << MySock::addressToString(&itUdp->getSockAddr().addr) << std::endl;
-							break;
-						}
-					}
-				}
-			}
 			{	// read
-				MySock::SOCKET_LIST readSockets = selectResult[MySock::kSelectRead];
-				for(MySock::SOCKET_LIST::iterator it = readSockets.begin(); it != readSockets.end(); ++it) {
-					for(MySock::UDPSocketList::iterator itUdp = udpSockets.begin(); itUdp != udpSockets.end(); ++itUdp) {
-						if(itUdp->socket() == (*it)) {
-							// 受信
-							MyLib::Data::BinaryData recvData;
-							MySock::MySockAddr sockaddr = {0};
-							itUdp->recv(recvData, &sockaddr);
+				MySock::SocketSet readSockets = selectResult[MySock::kResultReadable];
+				for(MySock::SocketSet::iterator it = readSockets.begin(); it != readSockets.end(); ++it) {
+					MySock::CUDPSocket* sock = dynamic_cast<MySock::CUDPSocket*>(*it);
+					if(sock != NULL) {
+						// 受信
+						MyLib::Data::BinaryData recvData;
+						MySock::MySockAddr sockaddr = {0};
+						bool isSendError = false;
+						sock->recv(recvData, &sockaddr, isSendError);
+						if(!isSendError) {
 							std::wcout << _T("!! arrived Data size=") << recvData.size() << std::endl <<
 								("from=") << MySock::addressToString(&sockaddr.addr) << std::endl <<
-								("to=") << MySock::addressToString(&itUdp->getSockAddr().addr) << std::endl <<
+								("to=") << MySock::addressToString(&sock->getSockAddr().addr) << std::endl <<
 								MyLib::String::toHexStr(&recvData[0], recvData.size()) << std::endl;
 							// そのまま返信
-							itUdp->sendTo(sockaddr, recvData);
-							break;
+							sock->sendTo(sockaddr, recvData);
+						} else {
+							std::wcout << _T("!! last send data is Unreachabled") <<
+								(" sock=") << MySock::addressToString(&sock->getSockAddr().addr) << std::endl;
 						}
+					} else {
+						std::tcout << _T("socket protocol(") << (*it)->protocol() << _T(") isn't udp?") << std::endl;
 					}
 				}
 			}
@@ -112,8 +107,9 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		}
 
 		// UDPサーバー 停止
-		for(MySock::UDPSocketList::iterator it = udpSockets.begin(); it != udpSockets.end(); ++it) {
-			it->close();
+		for(MySock::SocketSet::iterator it = udpSockets.begin(); it != udpSockets.end(); ++it) {
+			(*it)->close();
+			delete (*it);
 		}
 
 	} catch(MySock::CMySockException& e) {

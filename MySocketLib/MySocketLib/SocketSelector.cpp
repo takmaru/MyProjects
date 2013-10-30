@@ -30,18 +30,58 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 	FD_ZERO(&reads);
 	FD_ZERO(&writes);
 	FD_ZERO(&excepts);
-	for(SelectSockets::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
-		SOCKET sock = it->first;
-		SelectFlg flg = it->second;
-		if((flg & kSelectRead) != 0) {
-			FD_SET(sock, &reads);
+	for(MySock::SocketSet::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
+		CSocketBase* sock = (*it);
+		SOCKET nativeSock = (*it)->socket();
+		if(sock->protocol() == IPPROTO_UDP) {
+			// UDPソケット
+			if(	(sock->state() == kSockState_Binded) ||
+				(sock->state() == kSockState_Connecting)	) {
+				// バインド中、接続中
+				if(!sock->isIOState(kSocketIOState_Readable)) {
+					// Read通知OFF
+					FD_SET(nativeSock, &reads);
+				}
+			}
+		} else if(sock->protocol() == IPPROTO_TCP) {
+			// TCPソケット
+			if(sock->state() == kSockState_Listening) {
+				// リッスン中
+				if(!sock->isIOState(kSocketIOState_Acceptable)) {
+					// Accept通知OFF
+					FD_SET(nativeSock, &reads);
+				}
+			} else if(sock->state() == kSockState_WaitConnect) {
+				// 接続待ち
+				FD_SET(nativeSock, &writes);
+				FD_SET(nativeSock, &excepts);
+			} else if(sock->state() == kSockState_Connecting) {
+				// 接続中
+				if(!sock->isIOState(kSocketIOState_Readable)) {
+					// Read通知OFF
+					FD_SET(nativeSock, &reads);
+				}
+				if(!sock->isIOState(kSocketIOState_Writeable)) {
+					// Write通知OFF
+					FD_SET(nativeSock, &writes);
+				}
+			} else if(sock->state() == kSockState_GracefulClosing) {
+				// クローズ処理中
+				if(	!sock->isIOState(kSocketIOState_SendFin) &&
+					!sock->isIOState(kSocketIOState_Writeable)	) {
+					// Fin未送信、Write通知OFF
+					FD_SET(nativeSock, &writes);
+				}
+			}
+		} else {
+			RAISE_MYSOCKEXCEPTION("[select] invalid Socket(%d)", sock);
 		}
-		if((flg & kSelectWrite) != 0) {
-			FD_SET(sock, &writes);
-		}
-		if((flg & kSelectExcept) != 0) {
-			FD_SET(sock, &excepts);
-		}
+	}
+
+	if(	(reads.fd_count == 0) &&
+		(writes.fd_count == 0) &&
+		(excepts.fd_count == 0)	) {
+		return MySock::SelectResults();
 	}
 
 	// select
@@ -52,34 +92,48 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 
 	// 結果をセット
 	MySock::SelectResults result;
-	result.insert(SelectResultsPair(kSelectRead, MySock::SOCKET_LIST()));
-	result.insert(SelectResultsPair(kSelectWrite, MySock::SOCKET_LIST()));
-	result.insert(SelectResultsPair(kSelectExcept, MySock::SOCKET_LIST()));
-	for(SelectSockets::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
-		SOCKET sock = it->first;
-		if(FD_ISSET(sock, &reads)) {
-			result[kSelectRead].push_back(sock);
+	for(MySock::SocketSet::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it) {
+		CSocketBase* sock = (*it);
+		SOCKET nativeSock = (*it)->socket();
+		if(FD_ISSET(nativeSock, &reads)) {
+			if(	(sock->protocol() == IPPROTO_TCP) &&
+				(sock->state() == kSockState_Listening)	) {
+				// TCPソケット＆リッスン中
+				result[kResultAcceptable].insert(sock);
+			} else {
+				// その他
+				result[kResultReadable].insert(sock);
+			}
 		}
-		if(FD_ISSET(sock, &writes)) {
-			result[kSelectWrite].push_back(sock);
+		if(FD_ISSET(nativeSock, &writes)) {
+			if(sock->state() == kSockState_WaitConnect) {
+				result[kResultConnectSuccess].insert(sock);
+				// 状態遷移：接続中
+				sock->setState(kSockState_Connecting);
+			}
+			result[kResultWriteable].insert(sock);
 		}
-		if(FD_ISSET(sock, &excepts)) {
-			result[kSelectExcept].push_back(sock);
+		if(FD_ISSET(nativeSock, &excepts)) {
+			if(sock->state() == kSockState_WaitConnect) {
+				result[kResultConnectFailed].insert(sock);
+				// 状態遷移：ソケット作成済み
+				sock->setState(kSockState_Created);
+			} else {
+				result[kResultExcept].insert(sock);
+			}
 		}
 	}
 
 	return result;
 }
 
-void MySock::CSocketSelector::addSocket(SOCKET sock, SelectFlg flg) {
-	SelectSockets::iterator find = m_sockets.find(sock);
-	if(find != m_sockets.end()) {
-		find->second = flg;
-	} else {
-		m_sockets.insert(SelectSocketsPair(sock, flg));
+void MySock::CSocketSelector::addSocket(CSocketBase* sock) {
+	MySock::SocketSet::iterator find = m_sockets.find(sock);
+	if(find == m_sockets.end()) {
+		m_sockets.insert(sock);
 	}
 }
-void MySock::CSocketSelector::removeSocket(SOCKET sock) {
+void MySock::CSocketSelector::removeSocket(CSocketBase* sock) {
 	m_sockets.erase(sock);
 }
 void MySock::CSocketSelector::clearSockets() {

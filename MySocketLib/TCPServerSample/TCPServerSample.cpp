@@ -11,6 +11,62 @@
 #include <MySocketLib/MySockUtil.h>
 #include <MySocketLib/MySockException.h>
 
+namespace {
+	typedef unsigned int SocketState;
+	const SocketState kSockState_WaitConnect	= 0x00000001;
+	const SocketState kSockState_Connecting		= 0x00000002;
+	const SocketState kSockState_Readable		= 0x00000004;
+	const SocketState kSockState_Writeable		= 0x00000008;
+	const SocketState kSockState_Closing		= 0x00000010;
+	const SocketState kSockState_Closed			= 0x00000020;
+	const SocketState kSockState_Listening		= 0x00000040;
+
+	class CTCPSocketStateful : public MySock::CTCPSocket {
+	public:
+		CTCPSocketStateful() : MySock::CTCPSocket(),
+			m_state(0), m_lastDataSendTickCount(0) {
+		}
+		CTCPSocketStateful(const CTCPSocketStateful& obj) : MySock::CTCPSocket(obj),
+			m_state(0), m_lastDataSendTickCount(0) {
+		}
+		CTCPSocketStateful(SOCKET sock, int family) : MySock::CTCPSocket(sock, family),
+			m_state(0), m_lastDataSendTickCount(0) {
+		}
+		virtual ~CTCPSocketStateful() {
+		}
+	public:
+		void setState(SocketState state) {
+			m_state |= state;
+		}
+		void resetState(SocketState state) {
+			m_state &= ~state;
+		}
+		bool isSetState(SocketState state) const {
+			return ((m_state & state) != 0);
+		}
+		SocketState state() const {
+			return m_state;
+		}
+		bool canSend() const {
+			return (	(m_lastDataSendTickCount == 0) ||
+						((::GetTickCount() - m_lastDataSendTickCount) > 1000)	);
+		}
+		void setSendTickCount(DWORD tickCount) {
+			m_lastDataSendTickCount = tickCount;
+		}
+	private:
+		SocketState m_state;
+		DWORD m_lastDataSendTickCount;
+	};
+	typedef std::vector<CTCPSocketStateful> StatefulTCPSocketList;
+	class IsClosedSocket {
+	public:
+		bool operator()(const CTCPSocketStateful& sock) {
+			return sock.isSetState(kSockState_Closed);
+		}
+	};
+};
+
 // 終了イベント
 HANDLE g_exitEvent = NULL;
 // 制御コード通知ハンドラ関数
@@ -51,7 +107,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			sock.listen();
 			std::wcout << MySock::addressToString(&sock.getSockAddr().addr) << std::endl;
 			// selectオブジェクトへ追加
-			selector.addSocket(sock.socket(), MySock::kSelectRead | MySock::kSelectExcept);
+			selector.addSocket(sock.socket(), MySock::kSelectRead);
 			listenSockets.push_back(sock);
 		}
 
@@ -61,17 +117,6 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			// select
 			MySock::SelectResults selectResult = selector.select();
 
-			{	// except
-				MySock::SOCKET_LIST exceptSockets = selectResult[MySock::kSelectExcept];
-				for(MySock::SOCKET_LIST::iterator it = exceptSockets.begin(); it != exceptSockets.end(); ++it) {
-					for(MySock::TCPSocketList::iterator itTcp = listenSockets.begin(); itTcp != listenSockets.end(); ++itTcp) {
-						if(itTcp->socket() == (*it)) {
-							std::wcout << _T("except socket ") << MySock::addressToString(&itTcp->getSockAddr().addr) << std::endl;
-							break;
-						}
-					}
-				}
-			}
 			{	// read
 				MySock::SOCKET_LIST readSockets = selectResult[MySock::kSelectRead];
 				for(MySock::SOCKET_LIST::iterator it = readSockets.begin(); it != readSockets.end(); ++it) {
