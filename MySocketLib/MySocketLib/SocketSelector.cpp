@@ -96,6 +96,7 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 		CSocketBase* sock = (*it);
 		SOCKET nativeSock = (*it)->socket();
 		if(FD_ISSET(nativeSock, &reads)) {
+			// Read許可ON
 			if(	(sock->protocol() == IPPROTO_TCP) &&
 				(sock->state() == kSockState_Listening)	) {
 				// TCPソケット＆リッスン中
@@ -106,6 +107,7 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 			}
 		}
 		if(FD_ISSET(nativeSock, &writes)) {
+			// Write許可ON
 			if(sock->state() == kSockState_WaitConnect) {
 				result[kResultConnectSuccess].insert(sock);
 				// 状態遷移：接続中
@@ -114,6 +116,7 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 			result[kResultWriteable].insert(sock);
 		}
 		if(FD_ISSET(nativeSock, &excepts)) {
+			// Except ON
 			if(sock->state() == kSockState_WaitConnect) {
 				result[kResultConnectFailed].insert(sock);
 				// 状態遷移：ソケット作成済み

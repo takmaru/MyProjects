@@ -23,7 +23,7 @@ public:
 	void create(int family);
 	void listen();
 	CTCPSocket accept(MySock::MySockAddr* sockaddr = NULL);
-	MyLib::Data::BinaryData recv();
+	MyLib::Data::BinaryData recv(bool* isFinRecv = NULL);
 public:
 	virtual int protocol() const {
 		return IPPROTO_TCP;

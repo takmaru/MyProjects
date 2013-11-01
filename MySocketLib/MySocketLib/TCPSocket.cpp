@@ -51,6 +51,9 @@ MySock::CTCPSocket MySock::CTCPSocket::accept(MySock::MySockAddr* sockaddr/*= NU
 	}
 	// accept通知Off
 	this->resetIOState(kSocketIOState_Acceptable);
+	if(sockaddr != NULL) {
+		*sockaddr = mySockAddr;
+	}
 
 	// 接続ソケット作成 状態遷移：接続中
 	MySock::CTCPSocket acceptSocket(sock, m_family);
@@ -58,7 +61,7 @@ MySock::CTCPSocket MySock::CTCPSocket::accept(MySock::MySockAddr* sockaddr/*= NU
 	return acceptSocket;
 }
 
-MyLib::Data::BinaryData MySock::CTCPSocket::recv() {
+MyLib::Data::BinaryData MySock::CTCPSocket::recv(bool* isFinRecv/*= NULL*/) {
 	// check
 	if(m_sock == INVALID_SOCKET) {
 		RAISE_MYSOCKEXCEPTION("[recv] socket isn't created!!");
@@ -83,6 +86,9 @@ MyLib::Data::BinaryData MySock::CTCPSocket::recv() {
 		m_state = kSockState_GracefulClosing;
 		// Fin受信
 		this->setIOState(kSocketIOState_RecvFin);
+	}
+	if(isFinRecv != NULL) {
+		*isFinRecv = !(recvRet > 0);
 	}
 
 	return result;

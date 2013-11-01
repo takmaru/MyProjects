@@ -28,6 +28,7 @@ const SocketIOState kSocketIOState_Writeable		= 0x00000002;
 const SocketIOState kSocketIOState_RecvOutOfBand	= 0x00000004;
 const SocketIOState kSocketIOState_RecvFin			= 0x00000010;
 const SocketIOState kSocketIOState_SendFin			= 0x00000020;
+const SocketIOState kSocketIOState_FinBoth			= kSocketIOState_RecvFin | kSocketIOState_SendFin;
 
 class CSocketBase {
 public:

@@ -16,70 +16,22 @@
 #include <MySocketLib/MySockException.h>
 
 namespace {
-	typedef unsigned int SocketState;
-	const SocketState kSockState_WaitConnect	= 0x00000001;
-	const SocketState kSockState_Connecting		= 0x00000002;
-	const SocketState kSockState_Readable		= 0x00000004;
-	const SocketState kSockState_Writeable		= 0x00000008;
-	const SocketState kSockState_Closing		= 0x00000010;
-	const SocketState kSockState_Closed			= 0x00000020;
+	// 終了イベント
+	HANDLE g_exitEvent = NULL;
+	// 制御コード通知ハンドラ関数
+	BOOL WINAPI HandlerRoutine(DWORD ctrlType);
 
-	class CTCPSocketStateful : public MySock::CTCPSocket {
-	public:
-		CTCPSocketStateful() : MySock::CTCPSocket(),
-			m_state(0), m_lastDataSendTickCount(0) {
-		}
-		CTCPSocketStateful(const CTCPSocketStateful& obj) : MySock::CTCPSocket(obj),
-			m_state(0), m_lastDataSendTickCount(0) {
-		}
-		CTCPSocketStateful(SOCKET sock, int family) : MySock::CTCPSocket(sock, family),
-			m_state(0), m_lastDataSendTickCount(0) {
-		}
-		virtual ~CTCPSocketStateful() {
-		}
-	public:
-		void setState(SocketState state) {
-			m_state |= state;
-		}
-		void resetState(SocketState state) {
-			m_state &= ~state;
-		}
-		bool isSetState(SocketState state) const {
-			return ((m_state & state) != 0);
-		}
-		SocketState state() const {
-			return m_state;
-		}
-		bool canSend() const {
-			return (	(m_lastDataSendTickCount == 0) ||
-						((::GetTickCount() - m_lastDataSendTickCount) > 1000)	);
-		}
-		void setSendTickCount(DWORD tickCount) {
-			m_lastDataSendTickCount = tickCount;
-		}
-	private:
-		SocketState m_state;
-		DWORD m_lastDataSendTickCount;
-	};
-	typedef std::vector<CTCPSocketStateful> StatefulTCPSocketList;
-	class IsClosedSocket {
-	public:
-		bool operator()(const CTCPSocketStateful& sock) {
-			return sock.isSetState(kSockState_Closed);
-		}
-	};
+	typedef std::map<MySock::CSocketBase*, DWORD, MySock::compareSocketBase> SocketSendTimeMap;
+	typedef std::pair<MySock::CSocketBase*, DWORD> SocketSendTimePair;
+
+	void OnReadable(MySock::CTCPSocket& sock);
+	bool CheckExitEvent(bool& isExit);
 };
-
-
-// 終了イベント
-HANDLE g_exitEvent = NULL;
-// 制御コード通知ハンドラ関数
-BOOL WINAPI HandlerRoutine(DWORD ctrlType);
 
 int _tmain(int argc, _TCHAR* argv[]) {
 
 	// 終了イベント作成
-	g_exitEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+	g_exitEvent = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 	if(g_exitEvent == NULL) {
 		std::tcout << _T("CreateEvent error=") << ::GetLastError() << std::endl;
 		return -1;
@@ -102,183 +54,130 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		MySock::AddrInfoList addrInfos = MySock::getAddrInfoTCP("S59009717", 60000, 0, AF_UNSPEC);
 
 		// ソケットリスト
-		StatefulTCPSocketList tcpSockets;
+		MySock::SocketSet tcpSockets;
+		// selectオブジェクト
+		MySock::CSocketSelector selector;
 
 		// TCPクライアントソケット作成
 		for(MySock::AddrInfoList::iterator it = addrInfos.begin(); it != addrInfos.end(); ++it) {
-			CTCPSocketStateful sock;
+			MySock::CTCPSocket* sock = new MySock::CTCPSocket();
 			// TCPクライアントソケット作成
-			sock.create(it->family());
-			sock.setBlockingMode(false);
-			sock.connect(it->sockaddr());
-			sock.setState(kSockState_WaitConnect);
-			tcpSockets.push_back(sock);
+			sock->create(it->family());
+			sock->setBlockingMode(false);
+			sock->connect(it->sockaddr());
+			tcpSockets.insert(sock);
+			// selectオブジェクトへ追加
+			selector.addSocket(sock);
 		}
 
-		// selectオブジェクト
-		MySock::CSocketSelector selector;
-		// 接続待ちループ
-		bool isNeedUpdateSelectSocket = true;
-		while(1) {
-			if(isNeedUpdateSelectSocket) {
-				// selectオブジェクトが持つソケット情報をクリア
-				selector.clearSockets();
-				for(StatefulTCPSocketList::iterator it = tcpSockets.begin(); it != tcpSockets.end(); ++it) {
-					if(it->isSetState(kSockState_WaitConnect)) {
-						// 接続待ちソケット
-						selector.addSocket(it->socket(), MySock::kSelectWrite | MySock::kSelectExcept);
-					} else if(it->isSetState(kSockState_Connecting)) {
-						// 接続済みソケット
-						int selectflg = MySock::kSelectExcept;	// exceptは常にセット
-						if(!it->isSetState(kSockState_Closing)) {
-							// 接続中（受信可能、送信可能の両方を確認する）
-							if(!it->isSetState(kSockState_Readable)) {
-								selectflg |= MySock::kSelectRead;
-							}
-							if(!it->isSetState(kSockState_Writeable)) {
-								selectflg |= MySock::kSelectWrite;
-							}
-						} else {
-							// クローズ処理中（書込み可能かどうかだけ確認する）
-							if(!it->isSetState(kSockState_Writeable)) {
-								selectflg |= MySock::kSelectWrite;
-							}
-						}
-						selector.addSocket(it->socket(), selectflg);
-					} else {
-						// 接続待ちでも接続済みでもなければ無視
+		SocketSendTimeMap socketSendtimes;
+		bool isExit = false;
+		while(CheckExitEvent(isExit)) {
+			// 終了チェックでエラーなし（エラーがあればループ終了）
+
+			if(isExit) {
+				// 終了処理
+				// 接続中のソケット全てシャットダウンする
+				for(MySock::SocketSet::iterator it = tcpSockets.begin(); it != tcpSockets.end(); ++it) {
+					MySock::CTCPSocket* sock = dynamic_cast<MySock::CTCPSocket*>(*it);
+					if(sock->state() == MySock::kSockState_Connecting) {
+						sock->shutdown(SD_SEND);
 					}
 				}
-				isNeedUpdateSelectSocket = false;
 			}
 
 			// select
 			MySock::SelectResults selectResult = selector.select();
 
-			{	// except
-				MySock::SOCKET_LIST exceptSockets = selectResult[MySock::kSelectExcept];
-				for(MySock::SOCKET_LIST::iterator it = exceptSockets.begin(); it != exceptSockets.end(); ++it) {
-					for(StatefulTCPSocketList::iterator itTcp = tcpSockets.begin(); itTcp != tcpSockets.end(); ++itTcp) {
-						CTCPSocketStateful& tcpSocket = (*itTcp);
-						if(tcpSocket.socket() == (*it)) {
-							isNeedUpdateSelectSocket = true;
-							if(itTcp->isSetState(kSockState_WaitConnect)) {
-								// 接続待ち 接続エラー
-								std::wcout << _T("connect error") << std::endl;
-							} else {
-								// その他のエラー
-								std::wcout << _T("except socket") << std::endl;
-							}
-							tcpSocket.close();
-							tcpSockets.erase(itTcp);
-							break;
-						}
-					}
+			{	// 接続失敗
+				MySock::SocketSet sockets = selectResult[MySock::kResultConnectFailed];
+				for(MySock::SocketSet::iterator it = sockets.begin(); it != sockets.end(); ++it) {
+					std::tcout << _T("connect error sock=") << (*it)->socket() << std::endl;
 				}
 			}
-			{	// write
-				MySock::SOCKET_LIST writeSockets = selectResult[MySock::kSelectWrite];
-				for(MySock::SOCKET_LIST::iterator it = writeSockets.begin(); it != writeSockets.end(); ++it) {
-					for(StatefulTCPSocketList::iterator itTcp = tcpSockets.begin(); itTcp != tcpSockets.end(); ++itTcp) {
-						CTCPSocketStateful& tcpSocket = (*itTcp);
-						if(tcpSocket.socket() == (*it)) {
-							isNeedUpdateSelectSocket = true;
-							if(itTcp->isSetState(kSockState_WaitConnect)) {
-								// 接続待ち→接続中状態へ
-								itTcp->resetState(kSockState_WaitConnect);
-								itTcp->setState(kSockState_Connecting);
-								std::wcout << _T("connect socket ") << MySock::addressToString(&tcpSocket.getSockAddr().addr) <<
-									_T(" to ") << MySock::addressToString(&tcpSocket.getPeerAddr().addr) << std::endl;
-							} else if(itTcp->isSetState(kSockState_Connecting)) {
-								// 接続中 送信可能フラグON
-								itTcp->setState(kSockState_Writeable);
-							} else {
-								// その他
-								std::wcout << _T("write invalid socket") << std::endl;
-							}
-							break;
-						}
-					}
-				}
-			}
-			{	// read
-				MySock::SOCKET_LIST readSockets = selectResult[MySock::kSelectWrite];
-				for(MySock::SOCKET_LIST::iterator it = readSockets.begin(); it != readSockets.end(); ++it) {
-					for(StatefulTCPSocketList::iterator itTcp = tcpSockets.begin(); itTcp != tcpSockets.end(); ++itTcp) {
-						CTCPSocketStateful& tcpSocket = (*itTcp);
-						if(tcpSocket.socket() == (*it)) {
-							isNeedUpdateSelectSocket = true;
-							if(itTcp->isSetState(kSockState_Connecting)) {
-								// 接続中 受信可能フラグON
-								itTcp->setState(kSockState_Readable);
-							} else {
-								// その他
-								std::wcout << _T("read invalid socket") << std::endl;
-							}
-							break;
-						}
-					}
+			{	// 接続成功
+				MySock::SocketSet sockets = selectResult[MySock::kResultConnectSuccess];
+				for(MySock::SocketSet::iterator it = sockets.begin(); it != sockets.end(); ++it) {
+					std::tcout << _T("connect success sock=") << (*it)->socket() << std::endl;
+					socketSendtimes.insert(SocketSendTimePair((*it), 0));
 				}
 			}
 
-			{	// 送信可能、受信可能ソケットの処理
-				for(StatefulTCPSocketList::iterator it = tcpSockets.begin(); it != tcpSockets.end(); ++it) {
-					CTCPSocketStateful& tcpSocket = (*it);
-					if(tcpSocket.isSetState(kSockState_Readable)) {
-						// 受信可能
-						MyLib::Data::BinaryData recvData = tcpSocket.recv();
-						if(recvData.size() > 0) {
-							// データ受信
-							std::wcout << _T("recv data size=") << recvData.size() << std::endl <<
-								_T(" my=") << MySock::addressToString(&tcpSocket.getSockAddr().addr) << std::endl <<
-								_T(" peer=") << MySock::addressToString(&tcpSocket.getPeerAddr().addr) << std::endl <<
-								MyLib::String::toHexStr(&recvData[0], recvData.size()) << std::endl;
+			for(MySock::SocketSet::iterator it = tcpSockets.begin(); it != tcpSockets.end(); ++it) {
+				MySock::CTCPSocket* sock = dynamic_cast<MySock::CTCPSocket*>(*it);
+				if(sock->state() == MySock::kSockState_Connecting) {
+					// 状態：接続中
+					if(sock->isIOState(MySock::kSocketIOState_Writeable)) {
+						// WriteフラグON
+						SocketSendTimeMap::iterator itFind = socketSendtimes.find(sock);
+						if(itFind != socketSendtimes.end()) {
+							DWORD now = ::GetTickCount();
+							if(now - itFind->second > 1000) {
+								// 最後に送信してから特定時間以上経過していれば、データ送信
+								sock->send(MyLib::Data::randomData(128));
+								itFind->second = now;
+							}
 						} else {
-							// 接続先送信不可通知の受信（クローズ状態へ）
-							tcpSocket.setState(kSockState_Closing);
+							// ソケット最終接続時間マップに見つからなかった？
+							std::tcout << _T("connected writeable socket not found ?") << std::endl;
 						}
-
-						tcpSocket.resetState(kSockState_Readable);
 					}
-					if(tcpSocket.isSetState(kSockState_Writeable)) {
-						// 送信可能
-						if(tcpSocket.canSend()) {
-							// 送信必要
-							tcpSocket.send(MyLib::Data::randomData(128));
-							tcpSocket.resetState(kSockState_Writeable);
-							tcpSocket.setSendTickCount(::GetTickCount());
+					if(sock->isIOState(MySock::kSocketIOState_Readable)) {
+						// ReadフラグON
+						// データ受信処理
+						OnReadable(*sock);
+					}
+				} else if(sock->state() == MySock::kSockState_GracefulClosing) {
+					// 状態：クローズ処理中
+					if(	sock->isIOState(MySock::kSocketIOState_RecvFin) &&
+						!sock->isIOState(MySock::kSocketIOState_SendFin)	) {
+						// Fin受信、Fin未送信
+						// シャットダウン
+						sock->shutdown(SD_SEND);
+					} else
+					if(	!sock->isIOState(MySock::kSocketIOState_RecvFin) &&
+						sock->isIOState(MySock::kSocketIOState_SendFin)	){
+						// Fin送信、Fin未受信
+						if(sock->isIOState(MySock::kSocketIOState_Readable)) {
+							// ReadフラグON
+							// データ受信処理
+							OnReadable(*sock);
 						}
-						if(!tcpSocket.isSetState(kSockState_Closing)) {
-							// クローズ状態
-							tcpSocket.shutdown(SD_SEND);
-							tcpSocket.close();
-							tcpSocket.setState(kSockState_Closed);
-						}
+					}
+
+					if(sock->isIOState(MySock::kSocketIOState_FinBoth)) {
+						// Finを送信し、Finを受信しているなら終了処理
+						selector.removeSocket(sock);
+						sock->close();
 					}
 				}
-				// クローズしたソケットをリストから削除
-				std::remove_if(tcpSockets.begin(), tcpSockets.end(), IsClosedSocket());
 			}
 
-			// 終了確認
-			DWORD waitRet = ::WaitForSingleObject(g_exitEvent, 0);
-			if(waitRet == WAIT_OBJECT_0) {
-				std::wcout << _T("fire exit event") << std::endl;
-				break;
-			}  else if(waitRet == WAIT_ABANDONED) {
-				std::wcout << _T("exit event abandoned") << std::endl;
-				break;
-			} else if(waitRet == WAIT_FAILED) {
-				std::wcout << _T("wait exit error=") << ::GetLastError() << std::endl;
-				break;
-			} else {
-				// WAIT_TIMEOUT
+			if(isExit) {
+				// 終了処理
+				bool isExistConnectingSocket = false;
+				for(MySock::SocketSet::iterator it = tcpSockets.begin(); it != tcpSockets.end(); ++it) {
+					MySock::CTCPSocket* sock = dynamic_cast<MySock::CTCPSocket*>(*it);
+					if(	(sock->state() != MySock::kSockState_Created) && 
+						(sock->state() != MySock::kSockState_Closed)	) {
+						isExistConnectingSocket = true;
+						break;
+					}
+				}
+				if(!isExistConnectingSocket) {
+					// 全てのソケットが接続失敗（作成後）か接続中ソケットだけであればループ終了
+					break;
+				}
 			}
 		}
 
 		// ソケットの破棄
-		for(StatefulTCPSocketList::iterator it = tcpSockets.begin(); it != tcpSockets.end(); ++it) {
-			it->close();
+		for(MySock::SocketSet::iterator it = tcpSockets.begin(); it != tcpSockets.end(); ++it) {
+			MySock::CTCPSocket* sock = dynamic_cast<MySock::CTCPSocket*>(*it);
+			if(sock->state() != MySock::kSockState_Closed) {
+				sock->close();
+			}
+			delete sock;
 		}
 
 	} catch(MySock::CMySockException& e) {
@@ -301,6 +200,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 	return 0;
 }
+
+namespace {
 
 BOOL WINAPI HandlerRoutine(DWORD ctrlType) {
 	std::wcout << _T("on ctrl=") << ctrlType << std::endl;
@@ -326,4 +227,36 @@ BOOL WINAPI HandlerRoutine(DWORD ctrlType) {
 		break;
 	}
 	return res;
+}
+
+void OnReadable(MySock::CTCPSocket& sock) {
+	bool isFinRecv = false;
+	MyLib::Data::BinaryData recvData = sock.recv(&isFinRecv);
+	if(!isFinRecv) {
+		// データ受信
+		std::wcout << _T("recv data size=") << recvData.size() << std::endl <<
+			_T(" my=") << MySock::addressToString(&(sock.getSockAddr().addr)) << std::endl <<
+			_T(" peer=") << MySock::addressToString(&(sock.getPeerAddr().addr)) << std::endl <<
+			MyLib::String::toHexStr(&recvData[0], recvData.size()) << std::endl;
+	} else {
+		// Fin受信
+		std::tcout << _T("Fin recv sock=") << sock.socket() << std::endl;
+	}
+}
+
+bool CheckExitEvent(bool& isExit) {
+	// 終了確認
+	DWORD waitRet = ::WaitForSingleObject(g_exitEvent, 0);
+	if(waitRet == WAIT_ABANDONED) {
+		std::tcout << _T("exit event abandoned") << std::endl;
+		return false;
+	} else if(waitRet == WAIT_FAILED) {
+		std::tcout << _T("wait exit error=") << ::GetLastError() << std::endl;
+		return false;
+	} else if(waitRet == WAIT_OBJECT_0) {
+		isExit = true;
+	} // else WAIT_TIMEOUT
+	return true;
+}
+
 }
