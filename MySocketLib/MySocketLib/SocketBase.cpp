@@ -210,6 +210,20 @@ MySock::MySockAddr MySock::CSocketBase::getPeerAddr() {
 	return m_peerSockAddr;
 }
 
+int MySock::CSocketBase::lastError() {
+	// check
+	if(m_sock == INVALID_SOCKET) {
+		RAISE_MYSOCKEXCEPTION("[lastError] socket isn't created!!");
+	}
+
+	int err = 0;
+	int len = sizeof(err);
+	if(::getsockopt(m_sock, SOL_SOCKET, SO_ERROR, (char*)&err, &len) == SOCKET_ERROR) {
+		RAISE_MYSOCKEXCEPTION("[lastError] getsockopt err=%d", ::WSAGetLastError());
+	}
+	return err;
+}
+
 bool MySock::CSocketBase::setRecvBuffSize(int size) {
 	// check
 	if(	(size < MIN_RECV_BUFFSIZE) ||

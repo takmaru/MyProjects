@@ -101,9 +101,13 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 				(sock->state() == kSockState_Listening)	) {
 				// TCPソケット＆リッスン中
 				result[kResultAcceptable].insert(sock);
+				// Accept通知ON
+				sock->setIOState(MySock::kSocketIOState_Acceptable);
 			} else {
 				// その他
 				result[kResultReadable].insert(sock);
+				// Read通知ON
+				sock->setIOState(MySock::kSocketIOState_Readable);
 			}
 		}
 		if(FD_ISSET(nativeSock, &writes)) {
@@ -114,6 +118,8 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 				sock->setState(kSockState_Connecting);
 			}
 			result[kResultWriteable].insert(sock);
+			// Write通知ON
+			sock->setIOState(MySock::kSocketIOState_Writeable);
 		}
 		if(FD_ISSET(nativeSock, &excepts)) {
 			// Except ON
@@ -122,6 +128,7 @@ MySock::SelectResults MySock::CSocketSelector::select(unsigned int timeout) {
 				// 状態遷移：ソケット作成済み
 				sock->setState(kSockState_Created);
 			} else {
+				// TODO: sock->setState(kSockState_?);
 				result[kResultExcept].insert(sock);
 			}
 		}

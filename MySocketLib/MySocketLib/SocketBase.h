@@ -58,6 +58,8 @@ public:
 	MySock::MySockAddr getSockAddr();
 	MySock::MySockAddr getPeerAddr();
 
+	int lastError();
+
 public:
 	bool setRecvBuffSize(int size);
 

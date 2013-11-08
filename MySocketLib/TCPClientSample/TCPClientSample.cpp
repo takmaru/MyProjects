@@ -92,7 +92,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			{	// ê⁄ë±é∏îs
 				MySock::SocketSet sockets = selectResult[MySock::kResultConnectFailed];
 				for(MySock::SocketSet::iterator it = sockets.begin(); it != sockets.end(); ++it) {
-					std::tcout << _T("connect error sock=") << (*it)->socket() << std::endl;
+					std::tcout << _T("connect error sock=") << (*it)->socket() << _T(" err=") << (*it)->lastError() << std::endl;
 				}
 			}
 			{	// ê⁄ë±ê¨å˜

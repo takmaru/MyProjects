@@ -3,7 +3,10 @@
 
 #include "stdafx.h"
 
+#include <algorithm>
+
 #include <MyLib/tstring/tstring.h>
+#include <MyLib/String/StringUtil.h>
 #include <MySocketLib/AddrInfo.h>
 #include <MySocketLib/TCPSocket.h>
 #include <MySocketLib/SocketSelector.h>
@@ -135,6 +138,10 @@ int _tmain(int argc, _TCHAR* argv[]) {
 					}
 				}
 			}
+
+			// クローズ済みのソケットをリストから削除
+//			std::remove_if(acceptSockets.begin(), acceptSockets.begin(), );
+
 
 			if(isExit) {
 				// 終了処理
