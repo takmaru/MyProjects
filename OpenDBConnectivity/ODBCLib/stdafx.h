@@ -5,7 +5,7 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <sqltypes.h>
-#include <odbcss.h>
+#include <sqlncli.h>
 
 // STL
 #include <iomanip>

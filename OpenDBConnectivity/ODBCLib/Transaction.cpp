@@ -42,6 +42,9 @@ bool ODBCLib::CTransaction::rollback() {
 	if(!m_isEnabled) {
 		return false;
 	}
+	if(m_isEndTransaction) {
+		return false;
+	}
 	m_isEndTransaction = true;
 
 	bool result = false;

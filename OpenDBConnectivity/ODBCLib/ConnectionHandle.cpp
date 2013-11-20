@@ -38,6 +38,11 @@ SQLRETURN ODBCLib::CConnectionHandle::rollback() {
 	return ::SQLEndTran(SQL_HANDLE_DBC, m_handle, SQL_ROLLBACK);
 }
 
+// トランザクション分離レベルの設定
+SQLRETURN ODBCLib::CConnectionHandle::setIsolationLevel(SQLUINTEGER isolationLevel) {
+	return ::SQLSetConnectAttrW(static_cast<SQLHDBC>(m_handle), SQL_COPT_SS_TXN_ISOLATION, reinterpret_cast<SQLPOINTER>(isolationLevel), SQL_IS_UINTEGER);
+}
+
 SQLULEN ODBCLib::CConnectionHandle::attributes(SQLINTEGER attr) {
 	SQLULEN value = 0;
 	SQLRETURN ret = ::SQLGetConnectAttrW(static_cast<SQLHDBC>(m_handle), attr, &value, 0, NULL);

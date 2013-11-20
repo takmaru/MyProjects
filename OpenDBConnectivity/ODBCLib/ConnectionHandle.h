@@ -27,6 +27,8 @@ public:
 	SQLRETURN commit();
 	SQLRETURN rollback();
 
+	SQLRETURN setIsolationLevel(SQLUINTEGER isolationLevel);
+
 	SQLULEN attributes(SQLINTEGER attr);
 };	// end of... class CConnectionHandle
 

@@ -3,6 +3,9 @@
 #include "Transaction.h"
 #include "ODBCStatement.h"
 
+#include <memory>
+#include <string>
+
 namespace ODBCLib {
 
 class CEnvironmentHandle;
