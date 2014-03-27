@@ -24,6 +24,7 @@ public:
 	SQLRETURN prepare(SQLWCHAR* statement);
 
 	SQLRETURN execute();
+	SQLRETURN execute(SQLWCHAR* statement);
 	SQLRETURN nextResult();
 
 	SQLRETURN BindOutputParameter(SQLUSMALLINT index, int* param, SQLINTEGER* lenOrInd);
@@ -42,6 +43,8 @@ public:
 	void SetColWiseBind();
 	void SetFetchedCountPtr(SQLULEN* fetchedCount);
 	void SetRowStatusArray(RowStatusArray& rowStatusArray);
+	void SetCursorScrollable(SQLULEN scrollable);
+	void SetCursorSensitivity(SQLULEN sensitivity);
 	SQLRETURN BindCol(SQLUSMALLINT col, SQLSMALLINT type, SQLPOINTER valuePtr, SQLLEN elementSize, SQLINTEGER* len);
 	SQLRETURN Fetch();
 

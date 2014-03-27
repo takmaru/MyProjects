@@ -9,7 +9,6 @@
 
 ODBCLib::CStatementResult::CStatementResult(std::shared_ptr<CStatementHandle> statementHandle, SQLRETURN result):
 	m_statementHandle(statementHandle), m_result(result), m_resultSet(), m_resultRowCount(), m_diagInfo() {
-
 	if(m_result == SQL_SUCCESS) {
 		m_resultSet.reset(new ODBCLib::CResultSet(m_statementHandle));
 		if(m_resultSet->columns().size() <= 0) {
@@ -37,9 +36,9 @@ ODBCLib::CStatementResult::ResultType ODBCLib::CStatementResult::resultType() co
 			ret = RT_ResultRowCount;
 		} else if(m_diagInfo.get() != NULL) {
 			ret = RT_Info;
-		} else {
-			ret = RT_None;
 		}
+	} else if(m_result == SQL_NO_DATA) {
+		ret = RT_None;
 	}
 
 	return ret;

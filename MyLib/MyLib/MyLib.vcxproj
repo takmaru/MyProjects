@@ -35,6 +35,7 @@
     <ClCompile Include="File\FileEnumrator.cpp" />
     <ClCompile Include="File\FileManager.cpp" />
     <ClCompile Include="File\FileUtil.cpp" />
+    <ClCompile Include="File\IniFile.cpp" />
     <ClCompile Include="Path\Path.cpp" />
     <ClCompile Include="Path\PathControl.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -58,6 +59,7 @@
     <ClInclude Include="File\FileEnumrator.h" />
     <ClInclude Include="File\FileManager.h" />
     <ClInclude Include="File\FileUtil.h" />
+    <ClInclude Include="File\IniFile.h" />
     <ClInclude Include="File\TextFile_LineReader.h" />
     <ClInclude Include="Graph\adjacent_list.h" />
     <ClInclude Include="Graph\adjacent_matrix.h" />

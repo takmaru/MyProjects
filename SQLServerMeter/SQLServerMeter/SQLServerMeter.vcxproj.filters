@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="stdafx">
+      <UniqueIdentifier>{6ad1b94d-831a-43ec-a8e4-cd200daf5120}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>stdafx</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>stdafx</Filter>
+    </ClInclude>
+    <ClInclude Include="ExecuteThread.h" />
+    <ClInclude Include="ExecuteResult.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="SQLServerMeter.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <Filter>stdafx</Filter>
+    </ClCompile>
+    <ClCompile Include="Setting.cpp" />
+    <ClCompile Include="ExecuteThread.cpp" />
+    <ClCompile Include="ExecuteResult.cpp" />
+  </ItemGroup>
+</Project>

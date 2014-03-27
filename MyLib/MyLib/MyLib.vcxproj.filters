@@ -76,6 +76,9 @@
     <ClCompile Include="Data\DataUtil.cpp">
       <Filter>Data</Filter>
     </ClCompile>
+    <ClCompile Include="File\IniFile.cpp">
+      <Filter>File</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="File\FileEnumrator.h">
@@ -134,6 +137,9 @@
     </ClInclude>
     <ClInclude Include="Data\DataUtil.h">
       <Filter>Data</Filter>
+    </ClInclude>
+    <ClInclude Include="File\IniFile.h">
+      <Filter>File</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -67,6 +67,7 @@
     <ClInclude Include="ResultSet.h" />
     <ClInclude Include="ResultColumn.h" />
     <ClInclude Include="ResultRowCount.h" />
+    <ClInclude Include="..\..\SQLServerMeter\SQLServerMeter\Setting.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Handle">

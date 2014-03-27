@@ -1,6 +1,7 @@
 #pragma once
 
-//#include "DiagRecord.h"
+#include <vector>
+#include "DiagRecord.h"
 
 namespace ODBCLib {
 

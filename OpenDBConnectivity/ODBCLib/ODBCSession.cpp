@@ -33,10 +33,12 @@ bool ODBCLib::CODBCSession::startSession() {
 		if(m_connectionHandle->isHandleEnable()) {
 			ret = m_connectionHandle->connect(connectionString().c_str());
 			if(ret == SQL_SUCCESS) {
+m_connectionHandle->setIsolationLevel(SQL_TXN_SS_SNAPSHOT);
 				result = true;
 			} else if(ret == SQL_SUCCESS_WITH_INFO) {
+m_connectionHandle->setIsolationLevel(SQL_TXN_SS_SNAPSHOT);
 				result = true;
-				std::wcerr << ODBCLib::CDiagInfo(m_connectionHandle).description() << std::endl;
+//				std::wcerr << ODBCLib::CDiagInfo(m_connectionHandle).description() << std::endl;
 			} else {
 				std::wcerr << L"CODBCSession::startSession() CConnectionHandle::connect()=" << ret << std::endl <<
 					ODBCLib::CDiagInfo(m_connectionHandle).description() << std::endl;

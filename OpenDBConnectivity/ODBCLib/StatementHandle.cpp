@@ -23,11 +23,23 @@ SQLRETURN ODBCLib::CStatementHandle::prepare(SQLWCHAR* statement) {
 
 // ステートメントの実行
 SQLRETURN ODBCLib::CStatementHandle::execute() {
-	return ::SQLExecute(static_cast<SQLHSTMT>(m_handle));
+std::wcout << L"CStatementHandle::execute() start" << std::endl;
+SQLRETURN ret = ::SQLExecute(static_cast<SQLHSTMT>(m_handle));
+std::wcout << L"CStatementHandle::execute() end " << ret << std::endl;
+return ret;
+//	return ::SQLExecute(static_cast<SQLHSTMT>(m_handle));
+}
+// ステートメントの直接実行
+SQLRETURN ODBCLib::CStatementHandle::execute(SQLWCHAR* statement) {
+	return ::SQLExecDirectW(static_cast<SQLHSTMT>(m_handle), statement, SQL_NTS);
 }
 // 次の結果取得
 SQLRETURN ODBCLib::CStatementHandle::nextResult() {
-	return ::SQLMoreResults(static_cast<SQLHSTMT>(m_handle));
+std::wcout << L"CStatementHandle::nextResult() start" << std::endl;
+SQLRETURN ret = ::SQLMoreResults(static_cast<SQLHSTMT>(m_handle));
+std::wcout << L"CStatementHandle::nextResult() end " << ret << std::endl;
+return ret;
+//	return ::SQLMoreResults(static_cast<SQLHSTMT>(m_handle));
 }
 
 
@@ -146,6 +158,21 @@ void ODBCLib::CStatementHandle::SetRowStatusArray(RowStatusArray& rowStatusArray
 	SQLRETURN ret = ::SQLSetStmtAttrW(static_cast<SQLHSTMT>(m_handle), SQL_ATTR_ROW_STATUS_PTR, &(*rowStatusArray.begin()), 0);
 	if(ret != SQL_SUCCESS) {
 		std::wcerr << L"CStatementHandle::SetRowStatusArray() SQLSetStmtAttrW error(" << ret << L")" << std::endl;
+	}
+}
+
+void ODBCLib::CStatementHandle::SetCursorScrollable(SQLULEN scrollable) {
+	SQLRETURN ret = ::SQLSetStmtAttrW(static_cast<SQLHSTMT>(m_handle), SQL_ATTR_CURSOR_SCROLLABLE, (SQLPOINTER)scrollable, 0);
+	if(ret != SQL_SUCCESS) {
+		std::wcerr << L"CStatementHandle::SetCursorScrollable() SQLSetStmtAttrW error(" << ret << L")" << std::endl;// <<
+	}
+}
+
+void ODBCLib::CStatementHandle::SetCursorSensitivity(SQLULEN sensitivity) {
+	SQLRETURN ret = ::SQLSetStmtAttrW(static_cast<SQLHSTMT>(m_handle), SQL_ATTR_CURSOR_SENSITIVITY, (SQLPOINTER)sensitivity, 0);
+	if(ret != SQL_SUCCESS) {
+		std::wcerr << L"CStatementHandle::SetCursorSensitive() SQLSetStmtAttrW error(" << ret << L")" << std::endl;// <<
+//			ODBCLib::CDiagInfo(std::shared_ptr<CStatementHandle>(this)).description() << std::endl;
 	}
 }
 
