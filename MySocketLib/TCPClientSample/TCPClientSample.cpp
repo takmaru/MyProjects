@@ -51,7 +51,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 	try {
 		// アドレス情報取得
-		MySock::AddrInfoList addrInfos = MySock::getAddrInfoTCP("S59009717", 60000, 0, AF_UNSPEC);
+		MySock::AddrInfoList addrInfos = MySock::getAddrInfoTCP("10.132.2.4", 52308, 0, AF_UNSPEC);
 
 		// ソケットリスト
 		MySock::SocketSet tcpSockets;
